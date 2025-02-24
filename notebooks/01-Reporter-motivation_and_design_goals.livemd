@@ -1,0 +1,81 @@
+<!-- livebook:{"autosave_interval_s":60} -->
+
+# Reporter: Goals, motivation, methodology and design
+
+## Abstract
+
+_Reporter_ is an application designed for the production of professional enterprise reports. A critical and expected component of software applications performing important functions in businesses is the generation of dynamic PDF reports, for printing or sharing with other people.
+
+<!-- livebook:{"break_markdown":true} -->
+
+_Reporter_ is a report-generation wrapper around the Jasper Reports library. The intent behind this project is to completely sidestep the need to program in Java in order to generate professional reports. Clojure, a Lisp family of languages, is built on Java, which gives it access to decades of enterprise-level applications that run on the Java virtual machine.
+
+## Report-generating solutions considered
+
+Report generation is a very important function of all serious software efforts. The most common requirement is the creation of PDF reports, but a few related formats are often desirable in commercial settings, including creation of comma-separated values (CSV) exports, word processor documents (Word, Pages, LibreOffice Writer), spreadsheets (Excel, Numbers, LibreOffice Calc), presentations (PowerPoint, Keynote), as well as others.
+
+<!-- livebook:{"break_markdown":true} -->
+
+In consideration of plausible solutions to the requirement, the most important criteria had to be met:
+
+* A visual report template designer is a must, so that non-developers could use this to modify existing templates for their needs
+* An API for generating finished documents
+* Support for dynamic content generation
+* Rich text formatting capabilities
+* Generation of PDF as a minimum, as well as some of the target document types described above
+  * That the PDF generation isn't merely a glorified HTML to PDF solution, such as `wkhtmltopdf`, as HTML isn't yet a powerful typesetting and layout solution
+  * Pixel-perfect design precision
+  * Page-aware layout engine
+  * Print-oriented typesetting
+    * Quality typesetting, preferrably with high-quality justification
+    * Different first pages
+    * Document structure, including:
+      * Different page sizes within the same document
+      * Section-specific headers and footers
+      * Page numbering that can reset between sections
+      * Background layers that can vary by page type
+  * Print-ready output (desirable, not mandatory)
+    * CMYK color space (important for professional printing)
+    * Embedded fonts
+    * High-resolution image embedding
+    * PDF/A compliance for archiving
+    * Proper bleed and margin handling
+  * Predictable rendering
+* Reduced resource use, higher-performance report generation
+
+<!-- livebook:{"break_markdown":true} -->
+
+Solutions considered:
+
+1. Jasper Reports
+2. Pentaho
+3. BIRT
+4. QuestPDF
+
+<!-- livebook:{"break_markdown":true} -->
+
+Any solution to be considered, itself had to meet a few desiderata to be taken seriously:
+
+* The project is open-source
+* The project is alive and healthy, as witnessed by the recency and frequency of commits to their repository
+* A usable level of documentation exists, so that potential users are not expected to chase for basic information in forums and issues
+
+<!-- livebook:{"break_markdown":true} -->
+
+The underlying expectation in the selection process was that any solution chosen was likely to be in a very foreign programming language, most likely to be written in one of the corporate _darlings_: Java, .NET, C#, JavaScript, and would have to be _adapted_ in some way to work with in-house preferred languages: Elixir, Clojure, Common Lisp, OCaml. This drove the decision to wrap the generator within one of the in-house languages.
+
+<!-- livebook:{"break_markdown":true} -->
+
+I selected Jasper Reports as it clearly meets many of the criteria laid out; its visual designer Jaspersoft Studio was fairly easy to use intuitively; it had a comprehensive project manual with which to get started. As Jasper is written in Java, Clojure is the logical choice as the wrapper language, as I understand it and trust a number of the guarantees it provides, and the developer experience it affords.
+
+## Initial report prototype
+
+One of the important reasons driving the choice for Jasper is that it has a graphical user interface application—Jaspersoft Studio—making it possible for non-developers to design and modify reports with their drag and drop interface.
+
+<!-- livebook:{"break_markdown":true} -->
+
+To demonstrate the feasibility of Jaspersoft Studio, a sample report template was designed, a client timesheet, defined to take in a file containing a list of JSON-formatted data records, for use as the report's data source. Entirely using Studio, the template was designed, the datasource registered, and the feasibility of the graphical interface proved itself fully capable, making it easy to generate incremental finished reports through the _Preview_ facility. Rounding it off, Studio makes it trivial to export the template under design, using the defined datasource, directly to one of fourteen different formats.
+
+<!-- livebook:{"break_markdown":true} -->
+
+In the early prototyping stage, Studio made it easy to finesse the demonstration timesheet report, finally exporting it to PDF, all from the visual user interface. The relative simplicity of the entire prototyping step proved that Jasper—the solution—meets all pragmatic project needs, determining that the entire solution would be architected around the Jasper Reports library.
