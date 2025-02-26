@@ -1,10 +1,17 @@
 (defproject reporter "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "Clojure wrapper around Jasper Reports report-generation software"
+  :url ""
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
-  :dependencies [[org.clojure/clojure "1.11.1"]]
-  :main ^:skip-aot reporter.core
+  :dependencies [[org.clojure/clojure "1.11.1"]
+                 [org.clojure/java.classpath "1.0.0"]
+                 [org.tcrawley/dynapath "1.1.0"]
+                 [net.sf.jasperreports/jasperreports "7.0.1"]
+                 [net.sf.jasperreports/jasperreports-functions "7.0.1"]
+                 [net.sf.jasperreports/jasperreports-groovy "7.0.1"]
+                 [net.sf.jasperreports/jasperreports-json "7.0.1"]]
+  ;; :main ^:skip-aot reporter.core
+  :main reporter.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
