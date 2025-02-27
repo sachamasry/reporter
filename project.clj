@@ -7,9 +7,12 @@
                  [org.clojure/java.classpath "1.0.0"]
                  [org.tcrawley/dynapath "1.1.0"]
                  [net.sf.jasperreports/jasperreports "7.0.1"]
+                 [net.sf.jasperreports/jasperreports-fonts "7.0.1"]
                  [net.sf.jasperreports/jasperreports-functions "7.0.1"]
                  [net.sf.jasperreports/jasperreports-groovy "7.0.1"]
-                 [net.sf.jasperreports/jasperreports-json "7.0.1"]]
+                 [net.sf.jasperreports/jasperreports-json "7.0.1"]
+                 [net.sf.jasperreports/jasperreports-pdf "7.0.1"]]
+  :resource-paths ["resources" "resources/fonts/DRReportFontSet.jar"]
   ;; :main ^:skip-aot reporter.core
   :main reporter.core
   :target-path "target/%s"

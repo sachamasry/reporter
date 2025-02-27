@@ -25,16 +25,16 @@
   (println (str "PDF saved to: " output-path)))
 
 ;; Example usage
-;; (defn generate-report []
-;;   (let [jrxml-template "resources/client_timeshet.jrxml"  ;; Path to your .jrxml template
-;;         compiled-report (compile-report jrxml-template)
-;;         sample-data [{:name "Alice" :age 30} {:name "Bob" :age 25}]
-;;         filled-report (fill-report compiled-report sample-data)
-;;         pdf-output "output/report.pdf"]
-;;     (export-to-pdf filled-report pdf-output)))
-
 (defn generate-report []
-  (println "Compiling report...")
-  (let [jrxml-template "resources/client_timesheet.jrxml"
-        jasper-report (JasperCompileManager/compileReport jrxml-template)]
-    (println "Report compiled successfully!")))
+  (let [jrxml-template "resources/client_timesheet.jrxml"  ;; Path to your .jrxml template
+        compiled-report (compile-report jrxml-template)
+        sample-data [{:name "Alice" :age 30} {:name "Bob" :age 25}]
+        filled-report (fill-report compiled-report sample-data)
+        pdf-output "output/report.pdf"]
+    (export-to-pdf filled-report pdf-output)))
+
+;; (defn generate-report []
+;;   (println "Compiling report...")
+;;   (let [jrxml-template "resources/client_timesheet.jrxml"
+;;         jasper-report (JasperCompileManager/compileReport jrxml-template)]
+;;     (println "Report compiled successfully!")))

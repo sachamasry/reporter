@@ -1,0 +1,201 @@
+<!-- Created with Jaspersoft Studio version 7.0.1.final using JasperReports Library version 7.0.1-573496633c2b4074e32f433154b543003f7d2498  -->
+<jasperReport name="client_timesheet" language="groovy" columnCount="1" pageWidth="595" pageHeight="842" orientation="Landscape" columnWidth="449" leftMargin="73" rightMargin="73" topMargin="70" bottomMargin="70" uuid="49917283-5a69-45ae-9568-0be0a58fd32b">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Timesheet report JSON"/>
+	<property name="com.jaspersoft.studio.report.description" value="Client summary timesheet"/>
+	<property name="com.jaspersoft.studio.unit." value="mm"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="mm"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="mm"/>
+	<style name="Title" fontName="Calluna Sans" fontSize="26.0" bold="true"/>
+	<style name="SubTitle" forecolor="#666666" fontName="Calluna Sans" fontSize="18.0"/>
+	<style name="Column header" forecolor="#555555" fontName="Calluna Sans" fontSize="8.0" bold="false"/>
+	<style name="Detail" fontName="Calluna Light" fontSize="10.0"/>
+	<style name="Date subheader" forecolor="#030303" fontName="Calluna Semibold" fontSize="12.0"/>
+	<query language="JSON"><![CDATA[]]></query>
+	<field name="id" class="java.lang.String">
+		<description><![CDATA[id]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="id"/>
+	</field>
+	<field name="description" class="java.lang.String">
+		<description><![CDATA[description]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="description"/>
+	</field>
+	<field name="modified" class="java.lang.Integer">
+		<description><![CDATA[modified]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="modified"/>
+	</field>
+	<field name="tags" class="java.lang.String">
+		<description><![CDATA[tags]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="tags"/>
+	</field>
+	<field name="duration" class="java.lang.Integer">
+		<description><![CDATA[duration]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="duration"/>
+	</field>
+	<field name="inserted_at" class="java.lang.String">
+		<description><![CDATA[inserted_at]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="inserted_at"/>
+	</field>
+	<field name="updated_at" class="java.lang.String">
+		<description><![CDATA[updated_at]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="updated_at"/>
+	</field>
+	<field name="activity_type_id" class="java.lang.String">
+		<description><![CDATA[activity_type_id]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="activity_type_id"/>
+	</field>
+	<field name="billable" class="java.lang.String">
+		<description><![CDATA[billable]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="billable"/>
+	</field>
+	<field name="business_partner_id" class="java.lang.String">
+		<description><![CDATA[business_partner_id]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="business_partner_id"/>
+	</field>
+	<field name="project_id" class="java.lang.String">
+		<description><![CDATA[project_id]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="project_id"/>
+	</field>
+	<field name="business_partner_name" class="java.lang.String">
+		<description><![CDATA[business_partner_name]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="business_partner_name"/>
+	</field>
+	<field name="billing_rate" class="java.lang.Integer">
+		<description><![CDATA[billing_rate]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="billing_rate"/>
+	</field>
+	<field name="billing_duration_time_unit" class="java.lang.String">
+		<description><![CDATA[billing_duration_time_unit]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="billing_duration_time_unit"/>
+	</field>
+	<field name="billing_duration" class="java.lang.Integer">
+		<description><![CDATA[billing_duration]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="billing_duration"/>
+	</field>
+	<field name="duration_time_unit" class="java.lang.String">
+		<description><![CDATA[duration_time_unit]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="duration_time_unit"/>
+	</field>
+	<field name="end_stamp" class="java.lang.String">
+		<description><![CDATA[end_stamp]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="end_stamp"/>
+	</field>
+	<field name="start_stamp" class="java.lang.String">
+		<description><![CDATA[start_stamp]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="start_stamp"/>
+	</field>
+	<field name="activity_type" class="java.lang.String">
+		<description><![CDATA[activity_type]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="activity_type"/>
+	</field>
+	<field name="project_name" class="java.lang.String">
+		<description><![CDATA[project_name]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="project_name"/>
+	</field>
+	<field name="end_time" class="java.lang.String">
+		<description><![CDATA[end_time]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="end_time"/>
+	</field>
+	<field name="end_date" class="java.lang.String">
+		<description><![CDATA[end_date]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="end_date"/>
+	</field>
+	<field name="start_time" class="java.lang.String">
+		<description><![CDATA[start_time]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="start_time"/>
+	</field>
+	<field name="start_date" class="java.lang.String">
+		<description><![CDATA[start_date]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="start_date"/>
+	</field>
+	<field name="billing_duration_in_hours" class="java.math.BigDecimal">
+		<description><![CDATA[billing_duration_in_hours]]></description>
+		<property name="net.sf.jasperreports.json.field.expression" value="billing_duration_in_hours"/>
+	</field>
+	<sortField name="start_stamp"/>
+	<group name="BusinessPartnerGroup" startNewPage="true">
+		<expression><![CDATA[$F{business_partner_name}]]></expression>
+		<groupHeader>
+			<band/>
+		</groupHeader>
+		<groupFooter>
+			<band height="50"/>
+		</groupFooter>
+	</group>
+	<group name="TimerStartDateGroup" keepTogether="true">
+		<expression><![CDATA[$F{start_date}]]></expression>
+		<groupHeader>
+			<band height="50">
+				<element kind="textField" uuid="bea6b743-03c1-47e4-9178-f9aaef6d3885" x="0" y="20" width="100" height="30" style="Date subheader">
+					<expression><![CDATA[DATEFORMAT(new SimpleDateFormat("yyyy-MM-dd").parse($F{start_date}), "d MMMM y")]]></expression>
+				</element>
+			</band>
+		</groupHeader>
+	</group>
+	<background splitType="Stretch"/>
+	<title height="115" splitType="Stretch">
+		<element kind="image" uuid="88796d59-cd8c-43c1-853f-dd6acfa88258" positionType="Float" x="360" y="0" width="85" height="85">
+			<expression><![CDATA["/Users/sacha/Local documents/DevilRay/Branding/DevilRay-logo-sq.png"]]></expression>
+		</element>
+		<element kind="staticText" uuid="bcf29663-c4b8-483e-a197-e5f6920fd2a2" x="0" y="50" width="263" height="33" style="Title">
+			<text><![CDATA[Client Timesheet]]></text>
+		</element>
+		<element kind="textField" uuid="461747a7-62b4-4033-92cb-7f2edb226849" x="20" y="85" width="280" height="30" textAdjust="StretchHeight" style="SubTitle">
+			<expression><![CDATA[$F{business_partner_name}]]></expression>
+		</element>
+	</title>
+	<pageHeader splitType="Stretch"/>
+	<columnHeader height="35" splitType="Stretch">
+		<element kind="textField" uuid="04ef3945-8cc8-4c54-9c7f-a45ba25d57ea" x="399" y="0" width="50" height="30" hTextAlign="Right" vTextAlign="Middle" style="Column header">
+			<expression><![CDATA["HOURS"]]></expression>
+		</element>
+		<element kind="line" uuid="9d02e302-57b8-432b-babd-efb2418804ba" positionType="FixRelativeToBottom" x="-1" y="31" width="450" height="1">
+			<pen lineWidth="0.5" lineColor="#999999"/>
+		</element>
+		<element kind="textField" uuid="cbd9f98a-f54d-4007-8686-4abd120a4500" x="50" y="0" width="340" height="30" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+			<expression><![CDATA["ACTIVITY AND DESCRIPTION"]]></expression>
+		</element>
+		<element kind="textField" uuid="7c24d45d-120c-4377-9955-1981f32de1ed" x="1" y="0" width="40" height="30" hTextAlign="Right" vTextAlign="Middle" style="Column header">
+			<expression><![CDATA["TIME"]]></expression>
+		</element>
+	</columnHeader>
+	<detail>
+		<band height="39">
+			<element kind="textField" uuid="0f4bb758-4bb2-4eb4-9086-a6a6868205ba" x="50" y="1" width="340" height="30" textAdjust="StretchHeight" style="Detail">
+				<expression><![CDATA[$F{description}]]></expression>
+				<property name="com.jaspersoft.studio.unit.y" value="mm"/>
+			</element>
+			<element kind="textField" uuid="055b3540-72b0-4b60-b5a8-ea65d336047f" x="0" y="1" width="42" height="30" hTextAlign="Right" style="Detail">
+				<expression><![CDATA[$F{start_time}]]></expression>
+				<property name="com.jaspersoft.studio.unit.y" value="mm"/>
+			</element>
+			<element kind="textField" uuid="4cb31305-ae53-4813-b936-a6f5bce596b9" x="400" y="1" width="50" height="30" hTextAlign="Right" style="Column header">
+				<expression><![CDATA[$F{billing_duration_in_hours}]]></expression>
+				<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e59c9b7b-9d94-4a75-a264-cb55ddc4eb9b"/>
+				<property name="com.jaspersoft.studio.unit.y" value="mm"/>
+			</element>
+		</band>
+	</detail>
+	<columnFooter height="18" splitType="Stretch">
+		<element kind="line" uuid="f4ea54fc-a4b9-4971-acd1-638c2e274a20" positionType="FixRelativeToBottom" x="0" y="7" width="450" height="1">
+			<pen lineWidth="0.5" lineColor="#999999"/>
+		</element>
+	</columnFooter>
+	<pageFooter height="30" splitType="Stretch">
+		<element kind="textField" uuid="433509ef-2a34-4797-9cd1-684511ae022d" x="330" y="10" width="80" height="20" hTextAlign="Right" style="Column header">
+			<expression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></expression>
+		</element>
+		<element kind="textField" uuid="27402784-6be1-4e60-b9c7-c3664ea17454" x="410" y="10" width="40" height="20" evaluationTime="Report" style="Column header">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+		<element kind="textField" uuid="e16da2cc-f2dd-4b0a-a299-981148326ee6" x="0" y="10" width="197" height="20" pattern="EEEEE dd MMMMM yyyy" style="Column header">
+			<expression><![CDATA["Generated on " + DATEFORMAT(new java.util.Date(), "d MMMM y")]]></expression>
+		</element>
+	</pageFooter>
+	<summary splitType="Stretch"/>
+</jasperReport>
