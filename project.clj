@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [org.clojure/java.classpath "1.0.0"]
                  [org.tcrawley/dynapath "1.1.0"]
+                 [com.wjoel/clj-bean "0.2.1"]
                  [net.sf.jasperreports/jasperreports "7.0.1"]
                  [net.sf.jasperreports/jasperreports-fonts "7.0.1"]
                  [net.sf.jasperreports/jasperreports-functions "7.0.1"]
