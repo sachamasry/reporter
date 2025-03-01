@@ -1,22 +1,27 @@
 <!-- Created with Jaspersoft Studio version 7.0.1.final using JasperReports Library version 7.0.1-573496633c2b4074e32f433154b543003f7d2498  -->
 <jasperReport name="client_timesheet" language="groovy" columnCount="1" pageWidth="595" pageHeight="842" columnWidth="449" leftMargin="73" rightMargin="73" topMargin="70" bottomMargin="70" uuid="49917283-5a69-45ae-9568-0be0a58fd32b">
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Timesheet report JSON"/>
 	<property name="com.jaspersoft.studio.report.description" value="Client summary timesheet"/>
 	<style name="Title" fontName="Calluna Sans" fontSize="26.0" bold="true"/>
 	<style name="SubTitle" forecolor="#666666" fontName="Calluna Sans" fontSize="18.0"/>
 	<style name="Column header" forecolor="#555555" fontName="Calluna Sans" fontSize="8.0" bold="false"/>
 	<style name="Detail" fontName="Calluna Light" fontSize="10.0"/>
 	<style name="Date subheader" forecolor="#030303" fontName="Calluna Semibold" fontSize="12.0"/>
+	<style name="Default style" default="true" forecolor="#000000" fontName="Calluna" fontSize="10.0"/>
+	<style name="defaultFieldLabels" forecolor="#555555" vTextAlign="Bottom" fontName="Calluna Sans" fontSize="8.0" bold="false"/>
+	<style name="Page footer" style="defaultFieldLabels" vTextAlign="Bottom"/>
 	<query language="JSON"><![CDATA[]]></query>
 	<field name="businessPartnerName" class="java.lang.String"/>
 	<field name="startDate" class="java.lang.String"/>
 	<field name="startTime" class="java.lang.String"/>
 	<field name="description" class="java.lang.String"/>
 	<field name="billingDurationInHours" class="java.lang.Float"/>
-	<group name="BusinessPartnerGroup" startNewPage="true">
+	<group name="BusinessPartnerGroup" keepTogether="true" preventOrphanFooter="true" startNewPage="true" resetPageNumber="true">
 		<expression><![CDATA[$F{businessPartnerName}]]></expression>
 		<groupHeader>
-			<band/>
+			<band>
+				<property name="com.jaspersoft.studio.unit.height" value="mm"/>
+			</band>
 		</groupHeader>
 		<groupFooter>
 			<band height="50"/>
@@ -49,13 +54,13 @@
 		<element kind="textField" uuid="04ef3945-8cc8-4c54-9c7f-a45ba25d57ea" x="399" y="0" width="50" height="30" hTextAlign="Right" vTextAlign="Middle" style="Column header">
 			<expression><![CDATA["HOURS"]]></expression>
 		</element>
-		<element kind="line" uuid="9d02e302-57b8-432b-babd-efb2418804ba" positionType="FixRelativeToBottom" x="-1" y="31" width="450" height="1">
+		<element kind="line" uuid="9d02e302-57b8-432b-babd-efb2418804ba" positionType="FixRelativeToBottom" x="0" y="30" width="450" height="1">
 			<pen lineWidth="0.5" lineColor="#999999"/>
 		</element>
 		<element kind="textField" uuid="cbd9f98a-f54d-4007-8686-4abd120a4500" x="50" y="0" width="340" height="30" hTextAlign="Center" vTextAlign="Middle" style="Column header">
 			<expression><![CDATA["ACTIVITY AND DESCRIPTION"]]></expression>
 		</element>
-		<element kind="textField" uuid="7c24d45d-120c-4377-9955-1981f32de1ed" x="1" y="0" width="40" height="30" hTextAlign="Right" vTextAlign="Middle" style="Column header">
+		<element kind="textField" uuid="7c24d45d-120c-4377-9955-1981f32de1ed" x="0" y="0" width="40" height="30" hTextAlign="Right" vTextAlign="Middle" style="Column header">
 			<expression><![CDATA["TIME"]]></expression>
 		</element>
 	</columnHeader>
@@ -69,7 +74,7 @@
 				<expression><![CDATA[$F{startTime}]]></expression>
 				<property name="com.jaspersoft.studio.unit.y" value="mm"/>
 			</element>
-			<element kind="textField" uuid="4cb31305-ae53-4813-b936-a6f5bce596b9" x="400" y="1" width="50" height="30" hTextAlign="Right" style="Detail">
+			<element kind="textField" uuid="4cb31305-ae53-4813-b936-a6f5bce596b9" x="399" y="1" width="50" height="30" hTextAlign="Right" style="Detail">
 				<expression><![CDATA[$F{billingDurationInHours}]]></expression>
 				<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e59c9b7b-9d94-4a75-a264-cb55ddc4eb9b"/>
 				<property name="com.jaspersoft.studio.unit.y" value="mm"/>
@@ -81,15 +86,18 @@
 			<pen lineWidth="0.5" lineColor="#999999"/>
 		</element>
 	</columnFooter>
-	<pageFooter height="30" splitType="Stretch">
-		<element kind="textField" uuid="433509ef-2a34-4797-9cd1-684511ae022d" x="330" y="10" width="80" height="20" hTextAlign="Right" style="Column header">
+	<pageFooter height="35" splitType="Stretch">
+		<element kind="textField" uuid="433509ef-2a34-4797-9cd1-684511ae022d" x="330" y="10" width="80" height="20" hTextAlign="Right" style="Page footer">
 			<expression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></expression>
 		</element>
-		<element kind="textField" uuid="27402784-6be1-4e60-b9c7-c3664ea17454" x="410" y="10" width="40" height="20" evaluationTime="Report" style="Column header">
+		<element kind="textField" uuid="27402784-6be1-4e60-b9c7-c3664ea17454" x="409" y="10" width="40" height="20" evaluationTime="Report" style="Page footer">
 			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
 		</element>
-		<element kind="textField" uuid="e16da2cc-f2dd-4b0a-a299-981148326ee6" x="0" y="10" width="197" height="20" pattern="EEEEE dd MMMMM yyyy" style="Column header">
+		<element kind="textField" uuid="e16da2cc-f2dd-4b0a-a299-981148326ee6" x="0" y="10" width="130" height="20" pattern="EEEEE dd MMMMM yyyy" style="Page footer">
 			<expression><![CDATA["Generated on " + DATEFORMAT(new java.util.Date(), "d MMMM y")]]></expression>
+		</element>
+		<element kind="textField" uuid="13700a35-55a9-40bc-b49c-679d2e01d06e" x="140" y="10" width="180" height="20" pattern="EEEEE dd MMMMM yyyy" hTextAlign="Center" style="Page footer">
+			<expression><![CDATA[$F{businessPartnerName}]]></expression>
 		</element>
 	</pageFooter>
 	<summary splitType="Stretch"/>

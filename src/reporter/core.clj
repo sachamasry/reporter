@@ -1,5 +1,7 @@
 (ns reporter.core
-  (:require [clj-bean.core :as bean])
+  (:require [clj-bean.core :as bean]
+            [clojure.java.jdbc :as jdbc]
+            [cheshire.core :as json])
   (:import [net.sf.jasperreports.engine
             JasperCompileManager
             JasperFillManager
@@ -23,6 +25,11 @@
   (let [entry1 (reporter.core.TimesheetEntry. "PartnerA" 8 "2025-02-28" "09:00" "Worked on report")
         entry2 (reporter.core.TimesheetEntry. "PartnerB" 6 "2025-02-28" "10:00" "Worked on presentation")]
     [entry1 entry2]))
+
+;; (defn parse-json [json-str]
+;;   (json/read-str json-str :key-fn keyword))
+(defn parse-json [json-str]
+  (json/parse-string json-str true))  ;; Converts JSON into a Clojure map
 
 (defn compile-report
   "Compiles a JasperReports JRXML template into a .jasper file."
