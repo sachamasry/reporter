@@ -20,6 +20,14 @@
    [String startTime]
    [String description]])
 
+(defn json->bean [json-map]
+  (reporter.core.TimesheetEntry.
+   (:businessPartnerName json-map "")
+   (float (:billingDurationInHours json-map 0.0))
+   (:startDate json-map "")
+   (:startTime json-map "")
+   (:description json-map "")))
+
 ;; Sample data for testing purposes only
 (defn sample-data []
   (let [entry1 (reporter.core.TimesheetEntry. "PartnerA" 8 "2025-02-28" "09:00" "Worked on report")
