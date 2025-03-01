@@ -1,13 +1,15 @@
 (ns reporter.core
   (:require [clj-bean.core :as bean]
+            [clojure.java.io :as io]
             [clojure.java.jdbc :as jdbc]
-            [cheshire.core :as json])
+            [cheshire.core :as json]
+            [clojure.string :as str]
+            [clj-bean.core :as bean])
   (:import [net.sf.jasperreports.engine
             JasperCompileManager
             JasperFillManager
             JasperExportManager
             JasperPrint]
-           ;; [net.sf.jasperreports.engine.data JsonDataSource]
            [net.sf.jasperreports.engine JRPropertiesUtil]
            [net.sf.jasperreports.engine.data JRBeanCollectionDataSource]
            [java.util HashMap]))
@@ -34,10 +36,8 @@
         entry2 (reporter.core.TimesheetEntry. "PartnerB" 6 "2025-02-28" "10:00" "Worked on presentation")]
     [entry1 entry2]))
 
-;; (defn parse-json [json-str]
-;;   (json/read-str json-str :key-fn keyword))
-(defn parse-json [json-str]
-  (json/parse-string json-str true))  ;; Converts JSON into a Clojure map
+(defn parse-json [json-string]
+  (json/parse-string json-string true))  ;; Converts JSON into a Clojure map
 
 (defn compile-report
   "Compiles a JasperReports JRXML template into a .jasper file."
@@ -56,9 +56,10 @@
   (JasperExportManager/exportReportToPdfFile filled-report output-path)
   (println (str "PDF saved to: " output-path)))
 
-(defn generate-report [jrxml-path output-path]
+(defn generate-report [jrxml-path output-path report-data]
   (let [jasper-report (JasperCompileManager/compileReport jrxml-path)
-        data-source (JRBeanCollectionDataSource. (sample-data))
+        data-source (JRBeanCollectionDataSource. report-data)
         parameters (HashMap.)]
-    ;; Fill the report with data and then export it to a PDF file
-    (JasperExportManager/exportReportToPdfFile (JasperFillManager/fillReport jasper-report parameters data-source) output-path)))
+    (JasperExportManager/exportReportToPdfFile
+     (JasperFillManager/fillReport jasper-report parameters data-source)
+     output-path)))
