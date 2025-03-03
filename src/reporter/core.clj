@@ -1,4 +1,7 @@
 (ns reporter.core
+  "Core functionality for Reporter, defining configuration, dependencies
+  needed for interfacing with the Java Reports library, and prototype code
+  demonstrating a working report-generating solution."
   (:require [clj-bean.core :as bean]
             [clojure.java.io :as io]
             [clojure.java.jdbc :as jdbc]
@@ -46,17 +49,12 @@
              bean))
          data)))
 
-;; Sample data for testing purposes only
-(defn sample-data []
-  (let [entry1 (reporter.core.TimesheetEntry. "PartnerA" 8 "2025-02-28" "09:00" "Worked on report")
-        entry2 (reporter.core.TimesheetEntry. "PartnerB" 6 "2025-02-28" "10:00" "Worked on presentation")]
-    [entry1 entry2]))
-
 (defn parse-json [json-string]
-  (json/parse-string json-string true))  ;; Converts JSON into a Clojure map
+  "Converts a JSON string into a native Clojure map."
+  (json/parse-string json-string true))
 
 (defn compile-report
-  "Compiles a JasperReports JRXML template into a .jasper file."
+  "Compiles a JasperReports JRXML template into a '.jasper' file."
   [template-path]
   (JasperCompileManager/compileReport template-path))
 
@@ -85,4 +83,6 @@
                     :subname "/Users/sacha/bin/klepsidra/db/reporter.db"})  ;; Use the SQLite file that Elixir writes to
 
 (defn get-next-job []
+  "Picks up next 'pending' job from the report job queue, returning the entire
+  database record."
   (first (jdbc/query db-connection ["SELECT * FROM report_jobs WHERE status = 'pending' ORDER BY inserted_at LIMIT 1"])))
