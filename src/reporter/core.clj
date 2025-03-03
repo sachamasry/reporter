@@ -85,4 +85,4 @@
 (defn get-next-job []
   "Picks up next 'pending' job from the report job queue, returning the entire
   database record."
-  (first (jdbc/query db-connection ["SELECT * FROM report_jobs WHERE status = 'pending' ORDER BY inserted_at LIMIT 1"])))
+  (first (jdbc/query db-connection ["SELECT * FROM report_jobs WHERE state = 'pending' ORDER BY inserted_at LIMIT 1"])))
