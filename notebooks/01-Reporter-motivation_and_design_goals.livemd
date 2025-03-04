@@ -4,11 +4,11 @@
 
 ## Abstract
 
-_Reporter_ is an application designed for the production of professional enterprise reports. A critical and expected component of software applications performing important functions in businesses is the generation of dynamic PDF reports, for printing or sharing with other people.
+_Reporter_ is an application designed for the production of professional enterprise reports. A critical and expected component of software applications performing important functions in businesses is the generation of dynamic PDF reports, for printing or sharing with other people. What is key is that reports must be customisable, aesthetically pleasing, professionally typeset, and print-ready, in case of PDF production, or consumption-ready in cases of other office-suite reports needing to be consumed as an intermediate format.
 
 <!-- livebook:{"break_markdown":true} -->
 
-_Reporter_ is a report-generation wrapper around the Jasper Reports library. The intent behind this project is to completely sidestep the need to program in Java in order to generate professional reports. Clojure, a Lisp family of languages, is built on Java, which gives it access to decades of enterprise-level applications that run on the Java virtual machine.
+_Reporter_ is a report-generation wrapper around the Jasper Reports library. The intent behind this project is to completely sidestep the need to program in Java for generating professional reports. Clojure, a Lisp family of languages, is built on Java and hosted on that virtual machine, which gives it access to decades of enterprise-level applications that run on the Java virtual machine, while _improving_ on a number of Java's rough edges, opening it up to a pleasing programming environment—to those who love working in Lisp.
 
 ## Report-generating solutions considered
 
@@ -54,7 +54,7 @@ Solutions considered:
 
 <!-- livebook:{"break_markdown":true} -->
 
-Any solution to be considered, itself had to meet a few desiderata to be taken seriously:
+Any solution to be considered had to meet a few desiderata to be taken seriously:
 
 * The project is open-source
 * The project is alive and healthy, as witnessed by the recency and frequency of commits to their repository
@@ -79,3 +79,72 @@ To demonstrate the feasibility of Jaspersoft Studio, a sample report template wa
 <!-- livebook:{"break_markdown":true} -->
 
 In the early prototyping stage, Studio made it easy to finesse the demonstration timesheet report, finally exporting it to PDF, all from the visual user interface. The relative simplicity of the entire prototyping step proved that Jasper—the solution—meets all pragmatic project needs, determining that the entire solution would be architected around the Jasper Reports library.
+
+## Inter-process communication
+
+With the initial hypothesis now proven, that Jasper Reports can generate pleasing and rich PDF reports, the next step is to start building a solution _wrapping_ all available functionality in a language and environment more amenable to me. Clojure is my answer to wrapping Java libraries, given that the language is hosted on the Java virtual machine. The question needing an answer now is how a requesting process would formally make the initial request—monitoring its progress and outcome—of the Clojure solution?
+
+<!-- livebook:{"break_markdown":true} -->
+
+Several methods are available:
+
+1. Local communication (e.g., file-based or HTTP server) works well for simple, local use cases.
+2. Distributed communication using HTTP APIs, message queues, or GRPC is more scalable and suitable for remote or cloud-based environments.
+3. Containers provide flexibility and ease of scaling with orchestration tools like Docker Compose or Kubernetes.
+
+I am not a fan of containers, so will not further two method 3. Breaking the other two methods down provides further finer choices of direction:
+
+1. Local Interprocess Communication (IPC)
+
+   1. **File-based Communication** Elixir can write data to a file (such as JSON or CSV) and invoke the Clojure service, which reads the file, generates the report, and returns it. This is useful for simple, one-off reporting tasks.
+
+      **Pros**:
+
+      * Simple to implement for small-scale, local tasks.
+      * Easy to debug and monitor.
+
+      **Cons**:
+
+      * Not very scalable.
+      * Could lead to data synchronization issues in high-frequency or real-time scenarios.
+
+   2. **Local HTTP Server (via Clojure)** Clojure can expose an HTTP API using libraries like Ring or http-kit, and Elixir can make HTTP requests to this local service.
+
+      **Pros**:
+
+      * Easy to scale out (you can add more Clojure instances behind a load balancer).
+      * Can be easily monitored and controlled.
+
+      **Cons**:
+
+      * More complex than file-based communication.
+      * Slightly more overhead with HTTP, but still suitable for local use.
+
+2. Remote Communication (Distributed Services)
+
+   1. **HTTP API (RESTful or GraphQL)** Expose a RESTful API or GraphQL endpoint in Clojure, where Elixir can send HTTP requests to pass the data. This is the most flexible and scalable solution, as it allows you to separate concerns and deploy each service independently.
+
+      **Pros**:
+
+      * Highly scalable: You can run multiple instances of your Clojure service.
+      * Can be made stateless and cloud-friendly.
+      * Easily monitored using common observability tools.
+
+      **Cons**:
+
+      * Requires more infrastructure (e.g., load balancers, monitoring, etc.).
+
+   2. **Message Queue (e.g., RabbitMQ, Kafka, etc.)** Elixir can send messages (data for the report) to a message queue, and the Clojure service can consume these messages to generate reports. This allows for asynchronous communication, better decoupling, and scaling. This works well if you need to queue multiple requests or manage high volumes of requests.
+
+      **Pros**:
+
+      * Asynchronous and scalable.
+      * Handles retries and message persistence.
+      * Works well for high-volume use cases.
+
+      **Cons**:
+
+      * More infrastructure required (e.g., RabbitMQ, Kafka).
+      * Slightly more complex setup.
+
+   3. **GRPC (For High-Performance, Low-Latency Communication)** For highly performant, low-latency communication, you can use gRPC (a remote procedure call framework). Both Elixir and Clojure have gRPC libraries that allow for bidirectional communication between services.
