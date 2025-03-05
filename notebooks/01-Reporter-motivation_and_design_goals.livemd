@@ -148,3 +148,18 @@ I am not a fan of containers, so will not further two method 3. Breaking the oth
       * Slightly more complex setup.
 
    3. **GRPC (For High-Performance, Low-Latency Communication)** For highly performant, low-latency communication, you can use gRPC (a remote procedure call framework). Both Elixir and Clojure have gRPC libraries that allow for bidirectional communication between services.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The variable is the scale and requirements of the application, here are some options:
+
+1. Local communication (e.g., file-based or HTTP server) works well for simple, local use cases.
+2. Distributed communication using HTTP APIs, message queues, or GRPC is more scalable and suitable for remote or cloud-based environments.
+
+<!-- livebook:{"break_markdown":true} -->
+
+I'm a strong believer in simplicity, and while the distributed option has many benefits—distribution and ability to scale onto different and multiple systems, as well as the inherent volume and capacity benefits of that approach—the complexity of running this as a distributed service is not justifiable for all but the very most demanding environments. The local solution is better on many levels, including through simplified management, rollout and continued maintenance of the solution. I believe that this simplicity and the time savings to be reaped from it far outweigh the startup time of the application each time a report is requested, the _warmup_ of the solution, and the time taken for the delivery of the report. What's more, I think that the expectation—and need—for instant reports, simply doesn't exist; for the few reports that are needed (as a fraction of all functionality delivered) a reasonable waiting time is perfectly acceptable.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The way forward, then, is to develop a local communication method, using the filesystem or similar method, to handle the volume that is expected, and in the future this solution can be extended to also support distributed communication, distribution and scaling. Though GRPC is seductive, the simpler HTTP method is better understood and supported across all architectural levels of the application.
