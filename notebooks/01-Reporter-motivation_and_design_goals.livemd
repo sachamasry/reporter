@@ -10,6 +10,32 @@ _Reporter_ is an application designed for the production of professional enterpr
 
 _Reporter_ is a report-generation wrapper around the Jasper Reports library. The intent behind this project is to completely sidestep the need to program in Java for generating professional reports. Clojure, a Lisp family of languages, is built on Java and hosted on that virtual machine, which gives it access to decades of enterprise-level applications that run on the Java virtual machine, while _improving_ on a number of Java's rough edges, opening it up to a pleasing programming environment—to those who love working in Lisp.
 
+## The everlasting need for reports
+
+Reports are the lifeblood of a corporation, finding use in board discussions where it is unwieldy to rally participants around a shared computer screen, or to present interactions with an application via a projection; in doling out tasks to employees and subcontractors; in synthesising thoughts and plans of action, over carefully formatted and distilled figures on a printed report, without the distraction of the rest of the application, a means to achieve higher thought processes. There are many reasons not covered by this list, but the point stands: reports are not going away and must be given the respect they deserve in professional settings.
+
+<!-- livebook:{"break_markdown":true} -->
+
+There are many types of report needed, depending on the activity in question, the person or people the report targets, the action which the report should instigate, and many more. Below is a non-exhausive list of reports needed on a regular basis:
+
+<!-- livebook:{"break_markdown":true} -->
+
+* Invoices
+* Proof of receipt
+* Statements of transactions
+* List of outstanding payments, monies owed
+* Company accounts
+* Lists of tasks outstanding
+* Lists of actions undertaken, work carried out
+* List of schedules, e.g. regular maintenance, consumable replacement, safety checks due
+* Inventories taken and recorded on particular dates
+* Summary of communications with third parties
+* Specifications of a product, service or asset
+* Marketing materials for the above
+* Resource allocation map, e.g. available properties, potential tenants
+* Manifest
+* List of assets
+
 ## Report-generating solutions considered
 
 Report generation is a very important function of all serious software efforts. The most common requirement is the creation of PDF reports, but a few related formats are often desirable in commercial settings, including creation of comma-separated values (CSV) exports, word processor documents (Word, Pages, LibreOffice Writer), spreadsheets (Excel, Numbers, LibreOffice Calc), presentations (PowerPoint, Keynote), as well as others.
@@ -163,3 +189,12 @@ I'm a strong believer in simplicity, and while the distributed option has many b
 <!-- livebook:{"break_markdown":true} -->
 
 The way forward, then, is to develop a local communication method, using the filesystem or similar method, to handle the volume that is expected, and in the future this solution can be extended to also support distributed communication, distribution and scaling. Though GRPC is seductive, the simpler HTTP method is better understood and supported across all architectural levels of the application.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Benefits of a local communication strategy
+
+* **Complexity**: A file-based approach is much simpler to implement as it relies on basic file I/O operations (reading and writing to disk). Elixir would write data to a file (e.g., JSON, CSV), and Clojure would read that file to generate the report. Similarly, the generated report would be written back to a file which Elixir would later read.
+* **Batch Processing**: This approach is not “real-time” like gRPC. You’d typically write data to a file, then later process it, which makes this less suitable for low-latency applications.
+* **Asynchronous Nature**: File-based communication is naturally asynchronous because Elixir can spawn new processes that independently handle report generation. However, this requires proper synchronization or polling to ensure Elixir knows when the report is ready.
+* **Scalability**: File-based communication doesn’t inherently scale out across multiple services or containers, and its scalability would depend on how the file I/O system is designed and managed (e.g., shared network drive, cloud storage, etc.).
