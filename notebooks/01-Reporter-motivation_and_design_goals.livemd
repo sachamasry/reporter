@@ -24,7 +24,10 @@ There are many types of report needed, depending on the activity in question, th
 * Proof of receipt
 * Statements of transactions
 * List of outstanding payments, monies owed
-* Company accounts
+* Financial statements, company accounts
+* Sales reports
+* Marketing performance reports
+* Customer relationship management reports
 * Lists of tasks outstanding
 * Lists of actions undertaken, work carried out
 * List of schedules, e.g. regular maintenance, consumable replacement, safety checks due
@@ -184,17 +187,79 @@ The variable is the scale and requirements of the application, here are some opt
 
 <!-- livebook:{"break_markdown":true} -->
 
+Judging the requirements on their own merit, the gRPC approach is technically _the best_, with the local file-based method a more pragmatic second.
+
+<!-- livebook:{"break_markdown":true} -->
+
 I'm a strong believer in simplicity, and while the distributed option has many benefits—distribution and ability to scale onto different and multiple systems, as well as the inherent volume and capacity benefits of that approach—the complexity of running this as a distributed service is not justifiable for all but the very most demanding environments. The local solution is better on many levels, including through simplified management, rollout and continued maintenance of the solution. I believe that this simplicity and the time savings to be reaped from it far outweigh the startup time of the application each time a report is requested, the _warmup_ of the solution, and the time taken for the delivery of the report. What's more, I think that the expectation—and need—for instant reports, simply doesn't exist; for the few reports that are needed (as a fraction of all functionality delivered) a reasonable waiting time is perfectly acceptable.
 
 <!-- livebook:{"break_markdown":true} -->
 
 The way forward, then, is to develop a local communication method, using the filesystem or similar method, to handle the volume that is expected, and in the future this solution can be extended to also support distributed communication, distribution and scaling. Though GRPC is seductive, the simpler HTTP method is better understood and supported across all architectural levels of the application.
 
+## Local inter-process communication strategy and its benefits
+
+#### Communication complexity
+
+* **Complexity** A file-based approach is relatively simple to implement as it relies on basic file I/O operations (reading and writing to disk). The requesting application would write data to a file (in JSON, CSV, or other consumable format), and Clojure would read that file, generating the report, writing the output to a file which will be picked up by the requesting application.
+* **Batch Processing** This approach is not “real-time” in the way that a gRPC method of communication would afford. Data is first written to a file, then later processed, making this less suitable for low-latency or real-time applications.
+* **Asynchronous Nature** File-based communication is naturally asynchronous, as the calling application can spawn new processes independently handling report generation. However, this requires proper synchronization or polling to ensure the calling application knows when the report is ready.
+* **Scalability** File-based communication doesn’t inherently scale out across multiple services, containers or servers, and its scalability would depend on how the file I/O system is designed and managed (e.g., shared network drive, cloud storage, etc.).
+
 <!-- livebook:{"break_markdown":true} -->
 
-### Benefits of a local communication strategy
+#### System design and workflow
 
-* **Complexity**: A file-based approach is much simpler to implement as it relies on basic file I/O operations (reading and writing to disk). Elixir would write data to a file (e.g., JSON, CSV), and Clojure would read that file to generate the report. Similarly, the generated report would be written back to a file which Elixir would later read.
-* **Batch Processing**: This approach is not “real-time” like gRPC. You’d typically write data to a file, then later process it, which makes this less suitable for low-latency applications.
-* **Asynchronous Nature**: File-based communication is naturally asynchronous because Elixir can spawn new processes that independently handle report generation. However, this requires proper synchronization or polling to ensure Elixir knows when the report is ready.
-* **Scalability**: File-based communication doesn’t inherently scale out across multiple services or containers, and its scalability would depend on how the file I/O system is designed and managed (e.g., shared network drive, cloud storage, etc.).
+* **Loose Coupling** File-based communication is typically more loosely coupled. The requesting and generating applications don’t need to be aware of each other directly, beyond the files they exchange. The requesting application can write reports asynchronously, and Clojure can process them when available.
+* **Process Independence** The requesting application can run report generation processes in parallel (by spawning multiple processes) and check files at intervals for completion, allowing the services to work independently.
+* **No Dependency on Running Services** If Clojure isn’t running at the moment, the requesting application can still generate files or trigger report generation jobs, providing some flexibility. If the system goes down, it’s easier to restart the processes without a tight dependency chain.
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Error handling and failures
+
+* **Error Handling** In a file-based system, error handling would likely be manual. If something goes wrong, you’ll need to handle retries or notify the system to take corrective actions.
+* **Fault Tolerance** File-based approaches may be more tolerant to failures in the sense that both the requesting and generating applications can fail independently without causing a complete system failure. If the generator crashes, the requestor can wait and retry the file generation process.
+* **Logging** Logging and monitoring in a file-based system can be more challenging. You need to ensure proper logging of file operations, and may need a manual or custom process to track file generation status (e.g., polling the filesystem).
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Performance and latency
+
+* **Higher Latency** File-based communication inherently involves higher latency due to disk I/O and file reading/writing. The report generation process depends on file availability and may involve some polling or file system watching, which takes longer than the immediate RPC approach of gRPC.
+* **Synchronous/Asynchronous Blocking** the requesting application will be blocked while waiting for the report generation process to complete if polling is used. If the file I/O system is slow, it can add additional delays.
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Scalability and high availability
+
+* **Limited Scalability** Scaling with file-based communication requires careful consideration of file storage (e.g., shared network storage, cloud-based storage) and managing access to these files concurrently. You might need a distributed file system or cloud file storage to handle multiple instances of the report generation process.
+* **Backup Systems** For remote backup, file-based systems are easy to implement by copying files to another service, but it may not be as seamless or efficient as the automatic failover provided by a gRPC-based system.
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Infrastructure and Maintenance
+
+* **Minimal Infrastructure** A file-based approach requires minimal infrastructure. At minimum, a shared file system (local or cloud-based) is needed, where the requesting application can drop the data for the report-generating application to pick it up. If the system is small, you can run it without additional network or server configuration.
+* **Scaling via Filesystem** Once you need to scale, use cloud storage services (e.g., AWS S3) or a network-attached storage (NAS) device to hold the files.
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Key Advantages of File-based Approach Over gRPC for Failure Management
+
+* **Failure isolation** In the file-based approach, the requesting and generating applications can fail independently. If the generator fails, the requestor can simply restart it without being blocked or needing complex error handling. On the other hand, in gRPC, if the generating service goes down, the requestor will be impacted by this failure until the service is restored.
+* **Decoupled failure handling** The file-based approach provides much more decoupling between the applications. If one process fails (either of the applications), the other can continue running, and the requestor can handle errors by either retrying or spawning new processes independently. gRPC, however, relies on real-time connectivity between both services, so failure in one service immediately affects the other.
+* **Minimal external infrastructure needed** With file-based communication, you don’t need to implement complex monitoring systems (like Prometheus, health checks, etc.). The requesting application can directly manage the generator process lifecycle. For gRPC, you’d typically require additional tools for health checks, load balancing, or retries to make sure communication is resilient.
+* **Simplicity** File-based communication is often simpler to reason about. With file I/O, failures tend to be easier to debug because you’re working with persistent files, and recovery or retries are less likely to depend on network connectivity issues.
+
+<!-- livebook:{"break_markdown":true} -->
+
+In conclusion, if the use case involves relatively few reports per day, minimal infrastructure, and asynchronous processing, the file-based approach is simpler to implement and maintain, and is sufficient. However, if you expect future growth, need low-latency and scalable communication, or plan to integrate with other systems, gRPC is a better long-term solution.
+
+<!-- livebook:{"break_markdown":true} -->
+
+File-based communication is a more loosely coupled and fault-tolerant approach. The Elixir requesting application has complete control over spawning and managing Clojure—generating application—processes, making it simpler to handle failures, retries, and reinitializing processes when needed.
+
+<!-- livebook:{"break_markdown":true} -->
+
+In the case of failure recovery, the file-based approach excels by providing Elixir with full autonomy over process management, including detecting failures and restarting processes as needed. The gRPC approach would require external monitoring and retry mechanisms for resiliency.
