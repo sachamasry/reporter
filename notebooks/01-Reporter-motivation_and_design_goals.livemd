@@ -95,7 +95,7 @@ The underlying expectation in the selection process was that any solution chosen
 
 <!-- livebook:{"break_markdown":true} -->
 
-I selected Jasper Reports as it clearly meets many of the criteria laid out; its visual designer Jaspersoft Studio was fairly easy to use intuitively; it had a comprehensive project manual with which to get started. As Jasper is written in Java, Clojure is the logical choice as the wrapper language, as I understand it and trust a number of the guarantees it provides, and the developer experience it affords.
+I selected Jasper Reports as it clearly meets many of the criteria laid out; its visual designer Jaspersoft Studio was fairly easy to use intuitively; it had a comprehensive project manual with which to get started. As Jasper is written in Java, Clojure is a pragmatic choice as the wrapper language, as I understand it and trust a number of the guarantees it provides, and the developer experience it affords.
 
 ## Initial report prototype
 
@@ -111,7 +111,7 @@ In the early prototyping stage, Studio made it easy to finesse the demonstration
 
 ## Inter-process communication
 
-With the initial hypothesis now proven, that Jasper Reports can generate pleasing and rich PDF reports, the next step is to start building a solution _wrapping_ all available functionality in a language and environment more amenable to me. Clojure is my answer to wrapping Java libraries, given that the language is hosted on the Java virtual machine. The question needing an answer now is how a requesting process would formally make the initial request—monitoring its progress and outcome—of the Clojure solution?
+With the initial hypothesis now proven, that Jasper Reports can generate pleasing and rich PDF reports, the next step is to start building a solution _wrapping_ all available functionality in a language and environment more amenable to me. Clojure is my answer to wrapping Java libraries, given that the language is hosted on the Java virtual machine. The question needing an answer now is how a requesting process would formally make the initial request—monitoring its progress and outcome—of the report-generating solution?
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -125,7 +125,7 @@ I am not a fan of containers, so will not further two method 3. Breaking the oth
 
 1. Local Interprocess Communication (IPC)
 
-   1. **File-based Communication** Elixir can write data to a file (such as JSON or CSV) and invoke the Clojure service, which reads the file, generates the report, and returns it. This is useful for simple, one-off reporting tasks.
+   1. **File-based Communication** The requesting application can write data to a file (such as JSON or CSV) and invoke the report-generating service, which reads the file, generates the report, and returns it. This is useful for simple, one-off reporting tasks.
 
       **Pros**:
 
@@ -137,11 +137,11 @@ I am not a fan of containers, so will not further two method 3. Breaking the oth
       * Not very scalable.
       * Could lead to data synchronization issues in high-frequency or real-time scenarios.
 
-   2. **Local HTTP Server (via Clojure)** Clojure can expose an HTTP API using libraries like Ring or http-kit, and Elixir can make HTTP requests to this local service.
+   2. **Local HTTP Server** The report-generating service can expose an HTTP API using libraries like Ring or http-kit, and the requesting application can make HTTP requests to this local service.
 
       **Pros**:
 
-      * Easy to scale out (you can add more Clojure instances behind a load balancer).
+      * Easy to scale out (you can add more report-generating instances behind a load balancer).
       * Can be easily monitored and controlled.
 
       **Cons**:
@@ -151,11 +151,11 @@ I am not a fan of containers, so will not further two method 3. Breaking the oth
 
 2. Remote Communication (Distributed Services)
 
-   1. **HTTP API (RESTful or GraphQL)** Expose a RESTful API or GraphQL endpoint in Clojure, where Elixir can send HTTP requests to pass the data. This is the most flexible and scalable solution, as it allows you to separate concerns and deploy each service independently.
+   1. **HTTP API (RESTful or GraphQL)** Expose a RESTful API or GraphQL endpoint in the report-generating application, where the requesting application can send HTTP requests to pass the data. This is the most flexible and scalable solution, as it allows you to separate concerns and deploy each service independently.
 
       **Pros**:
 
-      * Highly scalable: You can run multiple instances of your Clojure service.
+      * Highly scalable: You can run multiple instances of the report-generating service.
       * Can be made stateless and cloud-friendly.
       * Easily monitored using common observability tools.
 
@@ -163,7 +163,7 @@ I am not a fan of containers, so will not further two method 3. Breaking the oth
 
       * Requires more infrastructure (e.g., load balancers, monitoring, etc.).
 
-   2. **Message Queue (e.g., RabbitMQ, Kafka, etc.)** Elixir can send messages (data for the report) to a message queue, and the Clojure service can consume these messages to generate reports. This allows for asynchronous communication, better decoupling, and scaling. This works well if you need to queue multiple requests or manage high volumes of requests.
+   2. **Message Queue (e.g., RabbitMQ, Kafka, etc.)** The requesting application can send messages (data for the report) to a message queue, and the report-generating can consume these messages to generate reports. This allows for asynchronous communication, better decoupling, and scaling. This works well if you need to queue multiple requests or manage high volumes of requests.
 
       **Pros**:
 
@@ -201,7 +201,7 @@ The way forward, then, is to develop a local communication method, using the fil
 
 #### Communication complexity
 
-* **Complexity** A file-based approach is relatively simple to implement as it relies on basic file I/O operations (reading and writing to disk). The requesting application would write data to a file (in JSON, CSV, or other consumable format), and Clojure would read that file, generating the report, writing the output to a file which will be picked up by the requesting application.
+* **Complexity** A file-based approach is relatively simple to implement as it relies on basic file I/O operations (reading and writing to disk). The requesting application would write data to a file (in JSON, CSV, or other consumable format), and the report-generating application would read that file, generating the report, writing the output to a file which will be picked up by the requesting application.
 * **Batch Processing** This approach is not “real-time” in the way that a gRPC method of communication would afford. Data is first written to a file, then later processed, making this less suitable for low-latency or real-time applications.
 * **Asynchronous Nature** File-based communication is naturally asynchronous, as the calling application can spawn new processes independently handling report generation. However, this requires proper synchronization or polling to ensure the calling application knows when the report is ready.
 * **Scalability** File-based communication doesn’t inherently scale out across multiple services, containers or servers, and its scalability would depend on how the file I/O system is designed and managed (e.g., shared network drive, cloud storage, etc.).
@@ -210,9 +210,9 @@ The way forward, then, is to develop a local communication method, using the fil
 
 #### System design and workflow
 
-* **Loose Coupling** File-based communication is typically more loosely coupled. The requesting and generating applications don’t need to be aware of each other directly, beyond the files they exchange. The requesting application can write reports asynchronously, and Clojure can process them when available.
+* **Loose Coupling** File-based communication is typically more loosely coupled. The requesting and generating applications don’t need to be aware of each other directly, beyond the files they exchange. The requesting application can write reports asynchronously, and the report-generating application can process them when available.
 * **Process Independence** The requesting application can run report generation processes in parallel (by spawning multiple processes) and check files at intervals for completion, allowing the services to work independently.
-* **No Dependency on Running Services** If Clojure isn’t running at the moment, the requesting application can still generate files or trigger report generation jobs, providing some flexibility. If the system goes down, it’s easier to restart the processes without a tight dependency chain.
+* **No Dependency on Running Services** If the report-generating application isn’t running at the moment, the requesting application can still generate files or trigger report generation jobs, providing some flexibility. If the system goes down, it’s easier to restart the processes without a tight dependency chain.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -258,8 +258,59 @@ In conclusion, if the use case involves relatively few reports per day, minimal 
 
 <!-- livebook:{"break_markdown":true} -->
 
-File-based communication is a more loosely coupled and fault-tolerant approach. The Elixir requesting application has complete control over spawning and managing Clojure—generating application—processes, making it simpler to handle failures, retries, and reinitializing processes when needed.
+File-based communication is a more loosely coupled and fault-tolerant approach. The requesting application has complete control over spawning and managing report—generating application—processes, making it simpler to handle failures, retries, and reinitializing processes when needed.
 
 <!-- livebook:{"break_markdown":true} -->
 
-In the case of failure recovery, the file-based approach excels by providing Elixir with full autonomy over process management, including detecting failures and restarting processes as needed. The gRPC approach would require external monitoring and retry mechanisms for resiliency.
+In the case of failure recovery, the file-based approach excels by providing the requesting application with full autonomy over process management, including detecting failures and restarting processes as needed. The gRPC approach would require external monitoring and retry mechanisms for resiliency.
+
+## Modifying local file-based communication to database-based
+
+While file-based inter-process communication is simple and standard across many systems, it is different enough that it will impose per-operating system implementation modifications, due to differences—however small—between BSD, Linux, Darwin and Windows file handling subtleties. A very good substitution for file-based communication is an abstraction existing acros all the above systems and more: SQLite, the embedded relational database system. SQLite already powers billions of devices, and its role is proven in even beating native file system performance, so this research direction has significant merits, not least of which is that it presents a unified interface, _regardless_ of operating system.
+
+Using a database-backed job queue instead of file-based communication has other significant advantages while still preserving the benefits of fault tolerance, monitoring, and process control.
+
+<!-- livebook:{"break_markdown":true} -->
+
+By using a separate SQLite database as a queue for pending report generation jobs, we gain:
+
+* **Decoupling between the applications** The requesting and generating applications interact indirectly through the database instead of needing real-time connectivity like gRPC.
+* **Failure resilience** Jobs persist in the queue even if either of the applications crashes, resulting in  no lost jobs.
+* **Monitoring and control** The calling application can inspect the queue at any time, retry or remove failed jobs.
+* **Concurrency and scaling** Multiple instances of the generating application can pick up jobs in parallel for distributed processing.
+* **No file system dependencies** Unlike the file-based approach, the database avoids file-level locks, race conditions, and cleanup issues.
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Architecture of the SQLite Job Queue Solution
+
+Here’s how this could work:
+
+1. Job Insertion (requesting application):
+   * The requesting application inserts a job (report request) into the jobs table in a dedicated SQLite database.
+   * It sets the job status as "pending".
+2. Job Processing (generating application):
+   * The report-generation service polls the database at regular intervals.
+   * It picks up the next available job, marks it as "processing", and generates the report.
+   * Once done, it updates the job with the generated report path and marks it as "completed".
+3. Result Retrieval (requesting application):
+   * The requesting application checks for completed jobs and retrieves the results.
+   * It can retry failed jobs, delete processed jobs, or trigger notifications when a report is ready.
+4. Error Handling & Recovery:
+   * If the report-generating process crashes, jobs remain in "pending" or "processing" status.
+   * Requesting applications can detect stalled jobs (e.g., by using a timestamp column) and retry or reassign them.
+
+<!-- livebook:{"break_markdown":true} -->
+
+Below is a simple starting schema for the job queue table:
+
+```sql
+CREATE TABLE report_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    status TEXT CHECK(status IN ('pending', 'processing', 'completed', 'failed')) NOT NULL DEFAULT 'pending',
+    parameters TEXT NOT NULL,  -- JSON payload of report parameters
+    result_path TEXT,          -- Path to generated report (filled by Clojure)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
