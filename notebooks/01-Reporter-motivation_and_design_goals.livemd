@@ -314,3 +314,106 @@ CREATE TABLE report_jobs (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Failure Scenarios & Resilience
+
+Report-generator service fails mid-processing
+
+* If the generator crashes while processing, the job remains in "processing" state.
+* The requesting application can detect stalled jobs (e.g., based on a timestamp) and reset them back to “pending”.
+
+<!-- livebook:{"break_markdown":true} -->
+
+```sql
+UPDATE report_jobs SET status = 'pending' WHERE status = 'processing' AND updated_at < datetime('now', '-5 minutes');
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+Requesting service crashes
+
+* Jobs in the queue persist in the SQLite database. And potentially beyond, as an audit trail.
+* Once the requesting service restarts, it can continue handling results as usual.
+
+Multiple report generator instances (scaling)
+
+* Multiple report generation processes can compete for jobs.
+* The first process to update the status to "processing" _wins_ the job.
+
+<!-- livebook:{"break_markdown":true} -->
+
+```sql
+UPDATE report_jobs SET status = 'processing' WHERE id = ? AND status = 'pending';
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+* This ensures only one instance processes a job at a time.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Advantages of a database compared to file-based communication
+
+| Feature           | File-Based Approach              | gRPC-Based Approach                         | SQLite Job Queue Approach                |
+| ----------------- | -------------------------------- | ------------------------------------------- | ---------------------------------------- |
+| Fault Tolerance   | Moderate (crash = job loss risk) | Low (needs external monitoring)             | High (jobs persist in DB)                |
+| Monitoring        | Requestor can track process      | Needs external tooling                      | Requestor can query DB                   |
+| Scalability       | Low (single process)             | Moderate (gRPC load balancing)              | High (multiple workers)                  |
+| Requestor Control | Full (spawns processes)          | Minimal (relies on report generator uptime) | Full (Requestor controls DB & job retry) |
+| Complexity        | Low                              | High (gRPC infra required)                  | Moderate (DB management)                 |
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Conclusion
+
+The SQLite-based job queue idea is a robust, fault-tolerant, and scalable alternative to both gRPC and file-based communication.
+
+* It maintains asynchronous processing while ensuring jobs persist in case of failure.
+* It provides monitoring & control directly through Elixir without needing extra infrastructure.
+* It allows the requesting application to detect failures and restart report-generating instances if needed.
+
+## Improving performance through memoisation
+
+[Memoisation](https://en.wikipedia.org/wiki/Memoization) is a performance/resource use optimization technique used primarily to speed up computer programs by storing the results of expensive operations, returning the cached result when the same inputs are used. It is a type of caching.
+
+<!-- livebook:{"break_markdown":true} -->
+
+In this context, generating reports is a relatively _expensive_ operation, requiring the calling of another environment, hosting the report-generating environment, using a multiple of the memory required to handle the data fitting the criteria, as the data undergoes several transformations:
+
+1. first retrieval and _shaping_ from the source database
+2. transformation into a JSON structure, and storage in the target format by the requesting application
+3. retrieval from storage by the report-generating application
+4. parsing back into native data structure
+5. final conversion into structure necessitated by report-generating library
+
+After which the report generation itself is a demanding process which needs to cleverly typeset the data, calculating correct line-breaking and page-breaking in the process—using yet more memory and CPU—finally _exporting_ it to the destination format (PDF, word processor document, spreadsheet, etc.)
+
+<!-- livebook:{"break_markdown":true} -->
+
+All of this takes time, using system memory and processing power fairly intensively. Simplifying reports, amount of data, interprocess communication (see above), and other optimisations will result in some resource savings, but cannot deliver significant impact on overall system use. But first, when surrounded by such powerful computing capacity, why should we concern ourselves with optimisation of any kind? For practical reasons: all computing power has a discernible cost attached. Ideally, we want to use the least computing power that we can get away with, and pay the lowest reasonable price. For example, let's assume that a simple application can usefully and reliably be hosted on a $5 per month computer (VPS). By prioritising a _pragmatic_ optimisation strategy, we can use this resource to do _more work_, or to support _more simultaneous users_, both of which are useful goals.
+
+<!-- livebook:{"break_markdown":true} -->
+
+So, how can we deliver a major multiple of optimisation, particularly in an environment used by multiple people? _Memoisation_ of generated reports, by which I mean remembering previously requested reports. It is a reality that the same report will be requested again, either by the same person who has forgotten that they've already had that particular report generated, or in situations where they've lost track of the generated report file, which they now need again. In contexts where multiple people use the same system, it is very likely that different people will request the same report, for example when a customer contacs the company, requesting confirmation of, or a duplicate of, a statement or other report. In both of these cases, we'll consider the regeneration of the same report _wasteful_, and will find it more economical to keep a log of generated reports for later retrieval, than reissuing report generating requests.
+
+<!-- livebook:{"break_markdown":true} -->
+
+By storing key information, such as all input _criteria_ selected when generating reports, as well as the full set of data which goes on to make up the report, including certain other metadata, we can easily detect when a report has been requested that's _identical_ to one already generated in the past. We can refer to this as a _report fingerprint_, as the following _uniquely_ identifies any kind of report we can generate:
+
+* Report name (customer statement, activity report, invoice)
+* Report style (which report template was requested)
+* Output format (PDF, spreadsheet, CSV)
+* Report criteria (date range, customer name, project)
+* Report data (the full dataset making up the report)
+* Any other _metadata_ used (notes, name of person requesting the report)
+* _Freshness_ (when was this last generated, is having the latest date on the report crucial)
+
+<!-- livebook:{"break_markdown":true} -->
+
+Using this methodology means that every report will have to be generated _once_. Subsequently, when any person using the system makes a request for a report, resulting in an identical _report fingerprint_ to one already in the report log, instead of going through all the steps of actually generating the report, the system cn simply provide the user with the same report it has already provided once. As a secondary advantage, this log serves as an audit trail for all the organisation's report requirements, providing an easy way to calculate the impact of this strategy, reporting statistics on time and resources saved. Intuitively, it is my opinion that overall efficiencies of up to 25% are achievable in an average organisation.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The first step in implementing this memoisation strategy is to reliably calculate every report's _unique fingerprint_ as described above. Doing this must be fast and _cheap_ on system resource use, while being robust, consistent, and _collision-resistant_.

@@ -86,3 +86,23 @@
   "Picks up next 'pending' job from the report job queue, returning the entire
   database record."
   (first (jdbc/query db-connection ["SELECT * FROM report_jobs WHERE state = 'pending' ORDER BY inserted_at LIMIT 1"])))
+
+;; Proposed code, to be tested
+(defn process-job [job]
+  (let [params (json/read-str (:parameters job) :key-fn keyword)
+        output-path (str "output/report-" (:id job) ".pdf")]
+    (generate-report "resources/template.jrxml" output-path params)
+    (jdbc/update! db-spec :report_jobs
+                  {:status "completed" :result_path output-path :updated_at (java.time.LocalDateTime/now)}
+                  ["id = ?" (:id job)])))
+
+(defn run-loop []
+  (while true
+    (when-let [job (get-next-job)]
+      (jdbc/update! db-spec :report_jobs {:status "processing"} ["id = ?" (:id job)])
+      (try
+        (process-job job)
+        (catch Exception e
+          (jdbc/update! db-spec :report_jobs {:status "failed"} ["id = ?" (:id job)])
+          (println "Error processing job:" e))))
+    (Thread/sleep 5000)))  ;; Poll every 5 seconds
