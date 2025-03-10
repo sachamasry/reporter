@@ -416,4 +416,78 @@ Using this methodology means that every report will have to be generated _once_.
 
 <!-- livebook:{"break_markdown":true} -->
 
-The first step in implementing this memoisation strategy is to reliably calculate every report's _unique fingerprint_ as described above. Doing this must be fast and _cheap_ on system resource use, while being robust, consistent, and _collision-resistant_. What is collision resistance? Mathematical operations are applied on the report criteria and input data, returning a unique line of apparently random text which uniquely identifies precisely that input. Even though they're designed against it, some known mathematical operations—or /algorithms/—are prone to return the exact same result given two different inputs. Even though this application is not being designed for security or privacy purposes, the application would provide very poor user experience (UX) if it were to return a completely different report than the one requested! Hence, there is a tradeoff to be considered between an algorithm that needs fewer resources to compute its result, while providing a higher guarantee against collision resistance.
+The first step in implementing this memoisation strategy is to reliably calculate every report's _unique fingerprint_ as described above. Doing this must be fast and _cheap_ on system resource use, while being robust, consistent, and _collision-resistant_. What is collision resistance? Mathematical operations are applied on the report criteria and input data, returning a unique line of apparently random text which uniquely identifies precisely that input. Even though they're designed against it, some known mathematical operations—or /algorithms/—are prone to return the exact same result given two different inputs. Even though this application is not being designed for security or privacy purposes, the application would provide a very poor user experience (UX) if it were to return a completely different report than the one requested! Hence, there is a tradeoff to be considered between an algorithm that needs fewer resources to compute its result, while providing a higher guarantee against collision resistance.
+
+## Choosing a hash function for unique fingerprinting
+
+_Hash functions_ are the mathematical operations described above. Given the specified criteria, there's a need for a hash function with a strong collision resistance—ideally _never_ resulting in a collision—pragmatically balanced against the speed of operation and consumption of computing resources. There are several commonly implemented hash functions available for consideration: SHA1, SHA2, SHA3, BLAKE2, SM3, MD4 and MD5.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### MD4 and MD5
+
+Speed: Very fast
+Resource usage: Low
+Collision resistance: Poor - both have been broken cryptographically
+Output size: 128 bits (16 bytes)
+Notes: Though fast, both have demonstrated collisions and are not recommended even for non-security fingerprinting
+
+### SHA1
+
+Speed: Fast
+Resource usage: Low to moderate
+Collision resistance: Compromised (collisions have been found)
+Output size: 160 bits (20 bytes)
+Notes: Better than MD4/5, but still vulnerable to collisions
+
+### SHA2 (SHA-256/SHA-512)
+
+Speed: Moderate
+Resource usage: Moderate
+Collision resistance: Strong
+Output size: 256/512 bits (32/64 bytes)
+Notes: Widely implemented, good balance of performance and collision resistance
+
+### SHA3
+
+Speed: Slower than SHA2
+Resource usage: Higher than SHA2
+Collision resistance: Very strong
+Output size: Variable (224-512 bits)
+Notes: Newer design but unnecessary computational overhead for fingerprinting
+
+### BLAKE2
+
+Speed: Very fast (often faster than MD5)
+Resource usage: Low
+Collision resistance: Strong
+Output size: Variable (up to 512 bits)
+Notes: Optimized for software implementation, especially on modern CPUs
+
+### SM3
+
+Speed: Similar to SHA-256
+Resource usage: Moderate
+Collision resistance: Strong (no known practical collisions)
+Output size: 256 bits (32 bytes)
+Notes: Chinese standard, less widely implemented in common libraries
+
+<!-- livebook:{"break_markdown":true} -->
+
+On balance, [`BLAKE2`](https://www.blake2.net/) is the best option, offering the following advantages:
+
+Excellent speed (typically faster than all others except possibly MD4/MD5)
+Low resource usage
+Strong collision resistance
+Widely available in modern programming libraries
+Specifically designed for high performance in software implementations
+
+If BLAKE2 isn't available in the desired environment, SHA-256 (part of SHA2) is the secondary recommendation as it balances good performance with very strong collision resistance.
+
+According to the project:
+
+> BLAKE2 is a cryptographic hash function faster than MD5, SHA-1, SHA-2, and SHA-3, yet is at least as secure as the latest standard SHA-3. BLAKE2 has been adopted by many projects due to its high speed, security, and simplicity.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The BLAKE2 hashing function comes in two variants: `blake2b` and `blake2s`. The first, `blake2b` is faster, and is highly optimised for 64-bit CPUs. The project page shows how much faster it is, demonstrating that it beats all the other hash function considered, and that it is over four times faster than the next function offering similar collision resistance, SHA3.
