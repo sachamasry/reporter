@@ -491,3 +491,25 @@ According to the project:
 <!-- livebook:{"break_markdown":true} -->
 
 The BLAKE2 hashing function comes in two variants: `blake2b` and `blake2s`. The first, `blake2b` is faster, and is highly optimised for 64-bit CPUs. The project page shows how much faster it is, demonstrating that it beats all the other hash function considered, and that it is over four times faster than the next function offering similar collision resistance, SHA3.
+
+## Privacy impact of memoisation
+
+The idea driving the development of a memoisation strategy to improve performance, while building a log of requested and generated reports is useful on at least two fronts: increased speed/reduced resource use, an audit trail, report-generation telemetry which can be statistically analysed for future improvements. However, this benefit comes with the ability to negatively impact privacy.
+
+<!-- livebook:{"break_markdown":true} -->
+
+On the one hand, data which can be protected by the primary application database is now exfiltrated to a secondary database—and consuming application—which has to be trusted.
+
+Secondly, this data, as well as the criteria used to shape it, remains in the database after the report has been generated. The data, along with the generated report, serves as a snapshot in time, resisting modification or any subsequent deletion in the primary application, which could become problematic.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The first issue simply cannot be fully secured against, if we are to share this data to generate reports. Building the Reporter application securely, to the highest quality standards of the day, is the best way of ensuring that nothing negative is likely to happen to the data. Ultimately, though, this data is still shared with the Jasper Reports library, which ultimately has to be trusted.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The second issue is far easier to alleviate. Data must remain in the table only for as long as it takes to generate the report, or give up and cancel the job. Once either of those two conditions have been met, the report _parameters_, or criteria, as well as the dataset itself, may be safely expunged. The persistence of the parameter and dataset fingerprints is enough to prevent unnecessary report regeneration in the future, providing the central space-for-time performance-optimising promise of memoisation for the lifetime of the log. Addressing resistance to change long after the report is generated, if the same report is requested in the future, possessing the same parameter fingerprint but with a differing dataset fingerprint, the legacy record can finally be _invalidated_, with the generated report expunged, reducing any impact of the _snapshot in time_ weakness.
+
+<!-- livebook:{"break_markdown":true} -->
+
+As the generated report must be kept around to provide those performance guarantees, the privacy aspect can _never be fully assured_, as one look at the report will provide the data to a motivated party. However, we must keep in mind that the primary methods of report dissemination—printing to hand out, and sending by email—are not in themselves secure, allowing analysis long into the future through these channels, thus providing important context to this risk. All that is to say, generated reports contain confidential data which can only be secured by the system so far and no more.
