@@ -416,6 +416,38 @@ Using this methodology means that every report will have to be generated _once_.
 
 <!-- livebook:{"break_markdown":true} -->
 
+### How Report Memoization Works
+
+Instead of generating the same report many times:
+
+1. Compute a unique fingerprint for each report request, based on input parameters and the provided dataset.
+2. Check the database before inserting a new job. If an identical report exists, return the previously generated report.
+3. Only generate new reports when no previous version exists.
+4. Automatically expire old reports based on a retention policy.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Expiring Old Reports
+
+To prevent indefinite keeping of reports, we can set a retention policy:
+
+* Expire reports after X days by deleting old jobs.
+* This can be done with a periodic cleanup query in either the calling or report generating application, though the former is more sensible.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Advantages of memoisation
+
+| Feature          | Without Memoization        | With Memoization                                |
+| ---------------- | -------------------------- | ----------------------------------------------- |
+| Performance      | Re-generates every report  | Avoids redundant work                           |
+| User Experience  | Slow for repeated requests | Faster report retrieval                         |
+| CPU/Memory Usage | Higher                     | Lower                                           |
+| Storage Use      | More reports stored        | Less storage required                           |
+| Fault Tolerance  | Jobs persist               | Jobs persist and can be skipped if already done |
+
+<!-- livebook:{"break_markdown":true} -->
+
 The first step in implementing this memoisation strategy is to reliably calculate every report's _unique fingerprint_ as described above. Doing this must be fast and _cheap_ on system resource use, while being robust, consistent, and _collision-resistant_. What is collision resistance? Mathematical operations are applied on the report criteria and input data, returning a unique line of apparently random text which uniquely identifies precisely that input. Even though they're designed against it, some known mathematical operations—or /algorithms/—are prone to return the exact same result given two different inputs. Even though this application is not being designed for security or privacy purposes, the application would provide a very poor user experience (UX) if it were to return a completely different report than the one requested! Hence, there is a tradeoff to be considered between an algorithm that needs fewer resources to compute its result, while providing a higher guarantee against collision resistance.
 
 ## Choosing a hash function for unique fingerprinting
