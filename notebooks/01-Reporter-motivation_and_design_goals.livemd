@@ -284,7 +284,7 @@ By using a separate SQLite database as a queue for pending report generation job
 
 #### Architecture of the SQLite Job Queue Solution
 
-Here’s how this could work:
+High-level overview of the report-generation workflow:
 
 1. Job Insertion (requesting application):
    * The requesting application inserts a job (report request) into the jobs table in a dedicated SQLite database.
@@ -366,13 +366,17 @@ UPDATE report_jobs SET status = 'processing' WHERE id = ? AND status = 'pending'
 
 <!-- livebook:{"break_markdown":true} -->
 
-### Conclusion
+### Summary
 
 The SQLite-based job queue idea is a robust, fault-tolerant, and scalable alternative to both gRPC and file-based communication.
 
 * It maintains asynchronous processing while ensuring jobs persist in case of failure.
 * It provides monitoring & control directly through Elixir without needing extra infrastructure.
 * It allows the requesting application to detect failures and restart report-generating instances if needed.
+
+## Local inter-process data sharing
+
+With the [embedded] database route chosen, it's important to decide on the _data interchange_ method. There are two obvious ways forward: (a) JSON-based, or simalar data-interchange format, and (b) table-based interchange. Despite only naming JSON as the data interchange format in method _a_, many popular—better and worse—formats exist, and are equally usable in this situation, including EDN, XML, CSV, MessagePack, direct database query, and others. Regardless of data interchange format, once the data is encoded, based on the choice of local database file as inter-process communication strategy, this encoded input dataset would be passed along to the report-generating table as a text field within the job request table, versus method _b_, which needs the creation of a _dedicated table_ to hold the input dataset for the duration of the process.
 
 ## Improving performance through memoisation
 
