@@ -376,7 +376,205 @@ The SQLite-based job queue idea is a robust, fault-tolerant, and scalable altern
 
 ## Local inter-process data sharing
 
-With the [embedded] database route chosen, it's important to decide on the _data interchange_ method. There are two obvious ways forward: (a) JSON-based, or simalar data-interchange format, and (b) table-based interchange. Despite only naming JSON as the data interchange format in method _a_, many popular—better and worse—formats exist, and are equally usable in this situation, including EDN, XML, CSV, MessagePack, direct database query, and others. Regardless of data interchange format, once the data is encoded, based on the choice of local database file as inter-process communication strategy, this encoded input dataset would be passed along to the report-generating table as a text field within the job request table, versus method _b_, which needs the creation of a _dedicated table_ to hold the input dataset for the duration of the process.
+With the [embedded] database route chosen, it's important to decide on the _data interchange_ method. There are two obvious ways to do this: (a) JSON-based (or other similar data-interchange format); and (b) table-based interchange. Despite only naming JSON as the data interchange format in method _a_, many popular—better and worse—formats exist, and are equally usable in this situation, including EDN, XML, CSV, MessagePack, direct database query, and others. Regardless of format, once the data is encoded, based on the choice of using a local database file as inter-process communication strategy, this encoded input dataset will be passed along to the report-generating table as a text field _within_ the job request table. In method _b_, the interchange is via a _dedicated database table_, which needs to be created, holding the input dataset for the duration of the process. Let's analyse the tradeoffs in these two options.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Option A: JSON-based interchange
+
+1. The requesting application queries the database
+2. It formats the results as JSON,
+3. It then stores it in the report job queue database, in the parameters JSON field
+4. The generating application passes the record pointer to JasperReports
+5. JasperReports queries the database, using the database's JSON functions
+
+#### Advantages
+
+Simple schema and no dynamic table creation. There is only one field (`parameters`) in the database, no need for per-report schema changes.
+
+The report job queue database remains lightweight
+
+* No need to create/drop tables dynamically.
+* Only stores a small number of report_jobs records at a time.
+
+JasperReports Can Natively Query JSON (and the underlying database supports it)
+
+* PostgreSQL: jsonb indexes allow efficient filtering.
+* SQLite (3.38+): json_extract() and json_each() functions for iteration.
+
+Easier Multi-Application Interchange
+
+* JSON is universally supported, making it easier for applications to generate reports.
+
+#### Disadvantages
+
+Memory and CPU intensive for large datasets
+
+* Large JSON blobs must be read fully into memory before being processed.
+* Querying JSON inside SQLite is slower than in PostgreSQL, as there is no native indexing.
+
+There is a parsing overhead in JasperReports
+
+* If the report-generating application parses JSON, it uses extra memory.
+* If JasperReports queries JSON directly, the performance depends on the database’s JSON support.
+
+Potential Size Limits
+
+* Some database engines impose JSON field size limits.
+* Large JSON blobs may cause slow I/O operations when reading/writing.
+
+Difficult to Index & Query Efficiently
+
+* Joins on JSON fields are inefficient.
+* Extracting structured data from JSON increases query complexity.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Option B: Database table-based interchange
+
+1. The requesting application queries the database
+2. It creates a structured table in the database, on the fly
+3. It inserts query results as rows
+4. The report-generating application reads the job, passing a reference to the table to JasperReports
+5. JasperReports queries the table directly using SQL
+6. The table is cleaned up, or completely dropped, after report generation.
+
+#### Advantages
+
+High performance for large datasets
+
+* No JSON parsing overhead.
+* Queries use native indexing and relational optimizations.
+
+Optimized memory usage
+
+* Data is streamed row-by-row, avoiding large in-memory blobs.
+* Queries can filter, aggregate, and join efficiently (if necessary).
+
+Minimal processing in the report-generating application
+
+* JasperReports reads structured SQL data directly.
+* No need for the report-generating application to parse JSON or transform data.
+
+Scales to millions of records
+
+* Structured tables handle thousands/millions of rows efficiently.
+* Supports batch inserts and indexed queries.
+
+#### Disadvantages
+
+Schema management overhead
+
+* Requires creating/dropping tables dynamically OR
+* Reusing a fixed table and deleting old records (which may cause fragmentation).
+
+Slightly more complex query logic
+
+* Requires defining table structures per report type.
+* Queries must match expected table formats.
+
+Concurrency considerations
+
+* Multiple reports running in parallel need safe table handling.
+* Requires transactional integrity if updating/deleting rows after processing.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Evaluation
+
+| Criteria               | Option A: JSON-Based                     | Option B: Table-Based           |
+| ---------------------- | ---------------------------------------- | ------------------------------- |
+| Data Exchange Speed    | Fast for small JSON, slow for large JSON | Fast for all sizes              |
+| Memory Usage           | High for large JSON                      | Low (row-by-row processing)     |
+| CPU Load               | High (JSON parsing overhead)             | Low (SQL optimizations)         |
+| Ease of Implementation | Simple (one JSON field)                  | Requires schema management      |
+| Scalability            | Slows down at thousands of records       | Handles millions of rows easily |
+| Indexing & Querying    | No JSON indexing (except PostgreSQL)     | SQL indexes, efficient joins    |
+| Robustness             | Prone to large JSON failures             | More robust for large datasets  |
+| Maintainability        | Easier for simple reports                | Requires per-report table logic |
+| Failure Modes          | Parsing failure, out-of-memory errors    | Handles large datasets safely   |
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Critical comparison
+
+For small datasets (≤ a few hundred rows): JSON-based interchange, option A, is fine. If reports are lightweight, JSON keeps things simpler.
+
+For large datasets (thousands to millions of rows): the database table-based interchange, option B, is the best choice. Using a database table to transfer data avoids the JSON parsing overhead, is efficient, scalable, and robust, and as JasperReports natively supports SQL queries, this makes it seamless.
+
+JSON is best for simple and light reports and for use in the early stages of report development, prototyping. For large reports, and eventually all reports, use of structured tables will be better in every way, after the initial table-creation cost is paid.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The database table-based interchange, option B, will be the primary method for reports, as it will be faster, scale better, avoiding memory issues.
+
+```
+•   JSON-based (Option A) should be a fallback for small, ad-hoc reports or cases where the dataset structure is highly variable and doesn’t justify schema changes.
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+1. Performance at scale
+   * JSON parsing is CPU-intensive, especially with large datasets.
+   * Table-based data streams row-by-row, keeping memory use low.
+   * Indexes, joins, and filters work efficiently in SQL, whereas JSON queries are slower and lack indexing (except in PostgreSQL).
+2. Memory and stability
+   * JSON requires loading the full dataset into memory. Large reports can crash if JSON blobs become too big.
+   * Table-based storage allows querying and pagination without excessive memory use.
+3. Supports large and complex reports
+   * When generating reports with thousands of rows, JSON will become a bottleneck.
+   * Structured tables handle aggregations, relationships, and pagination efficiently.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### When to Use JSON as a Fallback
+
+There are cases where JSON is useful:
+
+* If reports involve highly dynamic data (e.g., nested structures that are unpredictable).
+* When prototyping without modifying schemas.
+* If only small amounts of data are stored in parameters, and rewriting the structure for a table doesn’t make sense.
+
+However, JSON should be used only when necessary and for small datasets. If a JSON-based report consistently exceeds a few hundred rows, it should be converted to a table-based approach.
+
+#### Implementation Strategy
+
+1. Default
+   * Use database table-based storage for structured reports.
+   * Each report type has a dedicated table
+   * JasperReports queries these tables directly.
+2. Fallback
+   * Allow JSON-based storage only for small or highly dynamic reports.
+   * If JSON is used, JasperReports will query JSON directly
+3. Automation
+   * When inserting report data, choose table or JSON automatically based on dataset size or structure.
+   * Keep JSON for datasets under a few hundred rows, and switch to structured tables otherwise.
+
+## Dynamic report data table creation and cleanup
+
+1. When a report request is created, the requesting application:
+   * Examines the dataset structure.
+   * Dynamically generates a table in the shared database.
+   * Inserts the dataset into the generated table.
+   * Triggers the report generation process.
+2. After the report is generated, the report-generating application:
+   * Reads the dataset from the dynamic table.
+   * Generates the report.
+   * Drops the temporary table, or rows of data used, to free up resources.
+
+### Step-by-step implementation
+
+When a report request is made, the requesting application should:
+
+1. Inspect the dataset (list of maps).
+2. Infer column names and types.
+3. Generate and execute a CREATE TABLE statement.
+4. Insert the dataset into the new table.
+5. Store the table name in the `report_requests` record so that the report-generating application knows where to look.
+
+<!-- livebook:{"break_markdown":true} -->
+
+This solution brings about many benefits, for one, it is fully dynamic; there is no need for predefined table structures as tables are created as needed. It is efficient as SQL queries will be used directly, instead of in-memory JSON parsing on both ends of the implementation, also making for much-reduced memory usage. After every job, there is a fast and complete cleanup, as tables are dropped as soon as they're no longer needed. Lastly, and very importantly, the report generator application remains independent as new report types don’t require application logic or storage modifications. In this way, any new reports that are developed don't force any changes to be developed in the report generator, keeping it small, simple and generic, all massive wins through reduced costs of future maintenance.
 
 ## Improving performance through memoisation
 
