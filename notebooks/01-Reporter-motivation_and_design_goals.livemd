@@ -2,6 +2,12 @@
 
 # Reporter: Goals, motivation, methodology and design
 
+```elixir
+Mix.install([
+  {:decimal, "~> 2.3"}
+])
+```
+
 ## Abstract
 
 _Reporter_ is an application designed for the production of professional enterprise reports. A critical and expected component of software applications performing important functions in businesses is the generation of dynamic PDF reports, for printing or sharing with other people. What is key is that reports must be customisable, aesthetically pleasing, professionally typeset, and print-ready, in case of PDF production, or consumption-ready in cases of other office-suite reports needing to be consumed as an intermediate format.
@@ -575,6 +581,171 @@ When a report request is made, the requesting application should:
 <!-- livebook:{"break_markdown":true} -->
 
 This solution brings about many benefits, for one, it is fully dynamic; there is no need for predefined table structures as tables are created as needed. It is efficient as SQL queries will be used directly, instead of in-memory JSON parsing on both ends of the implementation, also making for much-reduced memory usage. After every job, there is a fast and complete cleanup, as tables are dropped as soon as they're no longer needed. Lastly, and very importantly, the report generator application remains independent as new report types don’t require application logic or storage modifications. In this way, any new reports that are developed don't force any changes to be developed in the report generator, keeping it small, simple and generic, all massive wins through reduced costs of future maintenance.
+
+```elixir
+dataset = [                                                                                                                       
+  %{                                                                                                                    
+    id: "eb66b8f4-c26f-446f-84a1-c163e5e28e7e",                                                                         
+    description: "Testing with non-billable timer",                                                                     
+    modified: 1,        
+    tags: "[null]",                                         
+    duration: 1,                                            
+    inserted_at: ~N[2025-03-20 01:11:01],
+    updated_at: ~N[2025-03-20 01:11:19],
+    start_stamp: "2025-03-20T01:11:01",
+    billing_duration: 0,  
+    duration_time_unit: "minute",
+    end_stamp: "2025-03-20T01:11:19",                     
+    project_name: "",                                       
+    business_partner_name: "",                                                                                          
+    activity_type: "",                                      
+    activity_type_id: nil,
+    billable: false,       
+    billing_duration_time_unit: "thirty_minute_increment",
+    billing_rate: Decimal.new("0"),
+    business_partner_id: nil,                               
+    project_id: nil,
+    end_time: "01:11",
+    end_date: "2025-03-20",
+    start_time: "01:11",
+    start_date: "2025-03-20",
+    billing_duration_in_hours: 0.0
+  },
+  %{
+    id: "4f281577-3501-4687-8cfc-7340641e6489",
+    description: "The quick brown fox jumped over the lazy dogs",
+    modified: 1,
+    tags: "[null]",
+    duration: 1,
+    inserted_at: ~N[2025-03-21 14:15:35],
+    updated_at: ~N[2025-03-21 14:16:02],
+    start_stamp: "2025-03-21T14:15:35",
+    billing_duration: 0,
+    duration_time_unit: "minute",
+    end_stamp: "2025-03-21T14:16:02",
+    project_name: "UI research",
+    business_partner_name: "",
+    activity_type: "",
+    activity_type_id: nil,
+    billable: false,
+    billing_duration_time_unit: "thirty_minute_increment",
+    billing_rate: Decimal.new("0"),
+    business_partner_id: nil,
+    project_id: "deb4057f-539a-42bb-91ad-7884e59a666e",
+    end_time: "14:16",
+    end_date: "2025-03-21",
+    start_time: "14:15",
+    start_date: "2025-03-21",
+    billing_duration_in_hours: 0.0
+  },
+  %{
+    id: "ab1c9580-d9ce-4027-b7e4-ed00b89fec8a",
+    description: "Taking the statues for a walk",
+    modified: 1,
+    tags: "[null]",
+    duration: 61,
+    inserted_at: ~N[2025-03-21 21:14:05],
+    updated_at: ~N[2025-03-21 21:14:15],
+    start_stamp: "2025-03-21T20:14:05",
+    billing_duration: 3,
+    duration_time_unit: "minute",
+    end_stamp: "2025-03-21T21:14:15",
+    project_name: "Fuckabout",
+    business_partner_name: "OCHM",
+    activity_type: "",
+    activity_type_id: nil,
+    billable: true,
+    billing_duration_time_unit: "thirty_minute_increment",
+    billing_rate: Decimal.new("0"),
+    business_partner_id: "90bc20d3-be65-46ea-a579-453d6ae3d378",
+    project_id: "3fa969fe-bdf7-4f9b-af29-7ea506531996",
+    end_time: "21:14",
+    end_date: "2025-03-21",
+    start_time: "20:14",
+    start_date: "2025-03-21",
+    billing_duration_in_hours: 1.5
+  }
+]
+```
+
+```elixir
+columns = [
+  id: "TEXT",
+  description: "TEXT",
+  modified: "INTEGER",
+  tags: "TEXT",
+  duration: "INTEGER",
+  inserted_at: "TEXT",
+  updated_at: "TEXT",
+  start_stamp: "TEXT",
+  billing_duration: "INTEGER",
+  duration_time_unit: "TEXT",
+  end_stamp: "TEXT",
+  project_name: "TEXT",
+  business_partner_name: "TEXT",
+  activity_type: "TEXT",
+  activity_type_id: "TEXT",
+  billable: "BOOLEAN",
+  billing_duration_time_unit: "TEXT",
+  billing_rate: "MAP",
+  business_partner_id: "TEXT",
+  project_id: "TEXT",
+  end_time: "TEXT",
+  end_date: "TEXT",
+  start_time: "TEXT",
+  start_date: "TEXT",
+  billing_duration_in_hours: "REAL"
+]
+```
+
+```elixir
+column_names = columns |> Enum.map(fn {field, _} -> field end)
+```
+
+```elixir
+comma = ", "
+insert_statement = "INSERT INTO report_client_timesheet_5fae0880_0f4f_4f06_a6fd_b48f0cba539b (#{Enum.join(column_names, comma)}) VALUES "
+```
+
+```elixir
+defmodule Typer do
+  # def type(value) do
+  #   IEx.Helpers.i value
+  # end
+
+  def type(value) when is_number(value), do: value
+  def type(value) when is_struct(value, NaiveDateTime), do: NaiveDateTime.to_string(value)
+  def type(value) when is_struct(value, DateTime), do: DateTime.to_string(value)
+  def type(value) when is_struct(value, Date), do: Date.to_string(value)
+  def type(value) when is_struct(value, Decimal), do: Decimal.to_string(value)
+  def type(true), do: 1
+  def type(false), do: 0
+  def type(value) when is_bitstring(value), do: value
+  def type(value) when is_nil(value), do: ""
+end
+```
+
+```elixir
+insert_values =
+  Enum.map(dataset, fn record ->
+    values =
+      Enum.map(column_names, fn col_name ->
+        Map.get(record, col_name) |> Typer.type()
+      end)
+
+    "(#{Enum.join(values, ", ")})"
+  end)
+
+# |> Enum.join(", ")
+```
+
+```elixir
+# insert_sql_statement = insert_statement <> insert_values
+```
+
+## Temporary in-memory databases
+
+Instead of creating temporary tables with unique table names, then _dropping_ them once the requested report has been generated, a viable and possibly cleaner solution is to use SQLite's in-memory database feature.
 
 ## Improving performance through memoisation
 
