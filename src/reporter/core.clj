@@ -2,7 +2,7 @@
   "Core functionality for Reporter, defining configuration, dependencies
   needed for interfacing with the Java Reports library, and prototype code
   demonstrating a working report-generating solution."
-  (:require [clj-bean.core :as bean]
+  (:require
             [clojure.java.io :as io]
             [clojure.java.jdbc :as jdbc]
             [cheshire.core :as json]
@@ -17,46 +17,19 @@
            [net.sf.jasperreports.engine.data JRBeanCollectionDataSource]
            [java.util HashMap]))
 
-;; Correct usage of defbean with camelCase field names
-(bean/defbean reporter.core.TimesheetEntry
-  [[String businessPartnerName]
-   [float billingDurationInHours]
-   [String startDate]
-   [String startTime]
-   [String description]])
-
-(defn json->bean [json-map]
-  (reporter.core.TimesheetEntry.
-   (:businessPartnerName json-map "")
-   (float (:billingDurationInHours json-map 0.0))
-   (:startDate json-map "")
-   (:startTime json-map "")
-   (:description json-map "")))
-
-(defn json->beans
-  "Converts a JSON string or parsed Clojure data into a list of TimesheetEntry beans."
-  [json-input]
-  (let [data (if (string? json-input)
-               (parse-json json-input)  ;; Parse if it's a string
-               json-input)]  ;; Use directly if it's already a parsed list
-    (map (fn [entry]
-           (let [bean (reporter.core.TimesheetEntry.)]
-             (.setBusinessPartnerName bean (or (:businessPartnerName entry) "Unknown"))
-             (.setBillingDurationInHours bean (float (or (:billingDurationInHours entry) 0.0))) ;; Prevents null float
-             (.setStartDate bean (or (:startDate entry) "1970-01-01"))
-             (.setStartTime bean (or (:startTime entry) "00:00"))
-             (.setDescription bean (or (:description entry) "No description"))
-             bean))
-         data)))
-
 (defn parse-json [json-string]
   "Converts a JSON string into a native Clojure map."
   (json/parse-string json-string true))
 
 (defn compile-report
-  "Compiles a JasperReports JRXML template into a '.jasper' file."
+  "Compiles a JasperReports JRXML template into an in-memory template representation."
   [template-path]
   (JasperCompileManager/compileReport template-path))
+
+(defn compile-report-to-file
+  "Compiles a JasperReports JRXML template into a '.jasper' file at `destination-path`."
+  [template-path destination-path]
+  (JasperCompileManager/compileReportToFile template-path destination-path))
 
 (defn fill-report
   "Fills a compiled Jasper report with data."
@@ -89,20 +62,27 @@
 
 ;; Proposed code, to be tested
 (defn process-job [job]
-  (let [params (json/read-str (:parameters job) :key-fn keyword)
+  (let [params [] ;; (json/read-str (:parameters job) :key-fn keyword)
         output-path (str "output/report-" (:id job) ".pdf")]
-    (generate-report "resources/template.jrxml" output-path params)
-    (jdbc/update! db-spec :report_jobs
-                  {:status "completed" :result_path output-path :updated_at (java.time.LocalDateTime/now)}
-                  ["id = ?" (:id job)])))
+    (generate-report "resources/template.jrxml" output-path params)))
+    ;; (jdbc/update! db-spec :report_jobs
+    ;;               {:status "completed" :result_path output-path :updated_at (java.time.LocalDateTime/now)}
+    ;;               ["id = ?" (:id job)])))
 
-(defn run-loop []
-  (while true
-    (when-let [job (get-next-job)]
-      (jdbc/update! db-spec :report_jobs {:status "processing"} ["id = ?" (:id job)])
-      (try
-        (process-job job)
-        (catch Exception e
-          (jdbc/update! db-spec :report_jobs {:status "failed"} ["id = ?" (:id job)])
-          (println "Error processing job:" e))))
-    (Thread/sleep 5000)))  ;; Poll every 5 seconds
+
+;; The following is prototype code that would task itself at looking for further
+;; queued report jobs with a status of "processing", take them off the queue and
+;; perform work on them.
+;;
+;; It is not known at this stage whether this is the best way forward.
+;;
+;; (defn run-loop []
+;;   (while true
+;;     (when-let [job (get-next-job)]
+;;       (jdbc/update! db-spec :report_jobs {:status "processing"} ["id = ?" (:id job)])
+;;       (try
+;;         (process-job job)
+;;         (catch Exception e
+;;           (jdbc/update! db-spec :report_jobs {:status "failed"} ["id = ?" (:id job)])
+;;           (println "Error processing job:" e))))
+;;     (Thread/sleep 5000)))  ;; Poll every 5 seconds
