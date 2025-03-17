@@ -17,8 +17,9 @@
            [net.sf.jasperreports.engine.data JRBeanCollectionDataSource]
            [java.util HashMap]))
 
-(defn parse-json [json-string]
+(defn parse-json
   "Converts a JSON string into a native Clojure map."
+  [json-string]
   (json/parse-string json-string true))
 
 (defn compile-report
@@ -53,7 +54,13 @@
 
 (def db-connection {:classname "org.sqlite.JDBC"
                     :subprotocol "sqlite"
-                    :subname "/Users/sacha/bin/klepsidra/db/reporter.db"})  ;; Use the SQLite file that Elixir writes to
+                    :subname "/Users/sacha/Development/elixir/klepsidra/db/reporter_dev.db"})  ;; Use the SQLite file that Elixir writes to
+                    ;; :subname "/Users/sacha/bin/klepsidra/db/reporter.db"})  ;; Use the SQLite file that Elixir writes to
+
+(defn list-defined-tables
+  []
+  "Lists all tables defined in the database"
+  (jdbc/query db-connection ["SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';"]))
 
 (defn get-next-job []
   "Picks up next 'pending' job from the report job queue, returning the entire

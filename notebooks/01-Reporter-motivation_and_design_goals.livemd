@@ -745,7 +745,37 @@ insert_values =
 
 ## Temporary in-memory databases
 
-Instead of creating temporary tables with unique table names, then _dropping_ them once the requested report has been generated, a viable and possibly cleaner solution is to use SQLite's in-memory database feature.
+Instead of creating temporary tables with unique table names, then _dropping_ them once the requested report has been generated, a viable and possibly cleaner solution is to use SQLite's in-memory database feature. The elegance provided by this solution is perfect for the needs of the project: by storing the reports' input datasets in in-memory database tables—instead of on disk—performance could not be faster; secondly, once the connection to an in-memory database is closed, data is automatically purged, simplifying table management and automatically ensuring privacy.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The research into this seductive possibility was short-lived, however, as SQLite provides two kinds of in-memory databases, with the inherent limitation that the database could only be accessed from the _same operating system process_. This immediately means that both types of in-memory databases provided by SQLite can not be used for inter-process communication, which is exactly what we're trying to achieve.
+
+<!-- livebook:{"break_markdown":true} -->
+
+Instead of pursuing this and creating endless complications to solve—which is doable, but impractical—it's more valuable to spend the time creating a robust temporary table creation and tear-down infrastructure. The simplest solution to having to _remember_ to delete temporary tables is the use of triggers, reacting to the change of status of the job, such that once a job is marked as 'complete', a trigger will immediately delete all tables containing the unique ID of the queued report job.
+
+## Defining possible job states
+
+In order to build post report-generation functionlity, as well as any other work based on the state of the report job, we must specify all possible states. A project that has done this job well is [Oban](https://hexdocs.pm/oban/Oban.html), Elixir's backgound job framework, so I will use states defined as legal in that project as a starting point.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Job State Transitions (taken directly from [Oban documentation](https://hexdocs.pm/oban/Oban.Job.html#states/0))
+
+`:scheduled` Jobs inserted with `scheduled_at` in the future are `:scheduled`. After the `scheduled_at` time has elapsed the `Oban.Plugins.Stager` will transition them to `:available`
+
+`:available` Jobs without a future `scheduled_at` timestamp are inserted as `:available` and may execute immediately
+
+`:executing` Available jobs may be run, at which point they are `:executing`
+
+`:retryable` Jobs that fail and haven't exceeded their max attempts are transitioned to `:retryable` and rescheduled until after a backoff period. Once the backoff has elapsed the `Oban.Plugins.Stager` will transition them back to `:available`
+
+`:completed` Jobs that finish executing succesfully are marked `:completed`
+
+`:discarded` Jobs that fail and exhaust their max attempts, or return a `:discard` tuple during execution, are marked `:discarded`
+
+`:cancelled` Jobs that are cancelled intentionally
 
 ## Improving performance through memoisation
 
