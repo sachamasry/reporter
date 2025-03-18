@@ -777,6 +777,13 @@ In order to build post report-generation functionlity, as well as any other work
 
 `:cancelled` Jobs that are cancelled intentionally
 
+<!-- livebook:{"break_markdown":true} -->
+
+#### TODO
+
+* [ ] Once the reporting prototyping is complete, and the solution is ready for production, carefully document all the above states and their meaning
+* [ ] In future, consider the possibility of a complete refactor of the job queue table, considering whether it's possible and desirable to delegate all job queue recording and management tasks to Oban, a it is a dedicated and continually maintained solution
+
 ## Improving performance through memoisation
 
 [Memoisation](https://en.wikipedia.org/wiki/Memoization) is a performance/resource use optimization technique used primarily to speed up computer programs by storing the results of expensive operations, returning the cached result when the same inputs are used. It is a type of caching.
