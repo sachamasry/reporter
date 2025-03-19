@@ -51,7 +51,7 @@
   (JasperExportManager/exportReportToPdfFile filled-report output-path)
   (println (str "PDF saved to: " output-path)))
 
-(defn generate-report [jrxml-path output-path db-connection data-table-name]
+(defn generate-pdf-report [jrxml-path output-path db-connection data-table-name]
   (let [compiled-report (JasperCompileManager/compileReport jrxml-path)
         parameters (java.util.HashMap.)]
     (.put parameters "TABLE_NAME" data-table-name)
@@ -79,16 +79,18 @@
   (first (jdbc/query db-specification ["SELECT * FROM report_jobs WHERE state = 'available' ORDER BY inserted_at LIMIT 1"])))
 
 ;; Proposed code, to be tested
-(defn process-job [template-path db-connection job]
+(defn process-job [db-connection job]
   (let [report-name (:report_name job)
-        report-template (:report_template job)
-        output-format (:output_format job)
+        system-template-name (:system_template_name job)
+        template-path (:template_path job)
         temporary-data-tables (:temporary_tables_created job)
         primary-data-table-name (-> temporary-data-tables (parse-json) (:primary))
-        ;; parameters [] ;; (json/read-str (:parameters job) :key-fn keyword)
-        output-path (str "output/" report-template "." output-format)
-        ]
-    (generate-report template-path output-path db-connection primary-data-table-name)))
+        output-path (:output_path job)
+        output-filename (:output_filename job)
+        output-type (:output_type job)
+        output-path (str output-path "/" output-filename)]
+    (if (= output-type "pdf")
+      (generate-pdf-report template-path output-path db-connection primary-data-table-name))))
 
     ;; (jdbc/update! db-spec :report_jobs
     ;;               {:status "completed" :result_path output-path :updated_at (java.time.LocalDateTime/now)}
