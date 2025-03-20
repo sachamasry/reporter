@@ -2,6 +2,7 @@
   "Core functionality for Reporter, defining configuration, dependencies
   needed for interfacing with the Java Reports library, and prototype code
   demonstrating a working report-generating solution."
+
   (:require
    [clojure.java.io :as io]
    [clojure.java.jdbc :as jdbc]
@@ -51,8 +52,9 @@
   (JasperExportManager/exportReportToPdfFile filled-report output-path)
   (println (str "PDF saved to: " output-path)))
 
-(defn generate-pdf-report [jrxml-path output-path db-connection data-table-name]
-  (let [compiled-report (JasperCompileManager/compileReport jrxml-path)
+(defn generate-pdf-report
+  [template-path output-path db-connection data-table-name]
+  (let [compiled-report (JasperCompileManager/compileReport template-path)
         parameters (java.util.HashMap.)]
     (.put parameters "TABLE_NAME" data-table-name)
     (JasperExportManager/exportReportToPdfFile
@@ -113,3 +115,11 @@
 ;;           (jdbc/update! db-spec :report_jobs {:status "failed"} ["id = ?" (:id job)])
 ;;           (println "Error processing job:" e))))
 ;;     (Thread/sleep 5000)))  ;; Poll every 5 seconds
+
+(defn benchmark-compile-report [jrxml-path]
+  (let [start-time (System/nanoTime)
+        compiled-report (JasperCompileManager/compileReport jrxml-path)
+        end-time (System/nanoTime)
+        elapsed-ms (/ (- end-time start-time) 1e6)]
+    (println (str "Report compiled in " elapsed-ms " ms"))
+    compiled-report)) ;; Return compiled report for further use

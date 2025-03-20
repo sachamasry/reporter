@@ -19,7 +19,10 @@
                  [net.sf.jasperreports/jasperreports-functions "7.0.1"]
                  [net.sf.jasperreports/jasperreports-groovy "7.0.1"]
                  [net.sf.jasperreports/jasperreports-json "7.0.1"]
-                 [net.sf.jasperreports/jasperreports-pdf "7.0.1"]]
+                 [net.sf.jasperreports/jasperreports-pdf "7.0.1"]
+                 [criterium "0.4.6"]
+                 [org.bouncycastle/bcprov-jdk15on "1.70"]]
+
   :resource-paths ["resources" "resources/fonts/DRReportFontSet.jar"]
   ;; :main ^:skip-aot reporter.core
   :main reporter.core
