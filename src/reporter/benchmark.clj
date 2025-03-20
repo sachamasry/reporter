@@ -1,33 +1,24 @@
 (ns reporter.benchmark
-  (:require [criterium.core :as crit])
-  (:import (org.bouncycastle.jcajce.provider.digest Blake2b256 SHA256Digest)
-           (java.nio.file Files Paths)
-           (java.util Base64)))
+  (:require [criterium.core :as crit]
+            [clojure.java.io :as io]
+            [reporter.crypto :as crypto])
+  (:import (java.nio.file Files Paths)
+           (java.util Base64)
+           [java.security MessageDigest]))
 
 ;; Utility: Read File Contents
-(defn read-file-bytes [file-path]
-  (Files/readAllBytes (Paths/get file-path)))
+(defn read-file-bytes
+  "Reads a file and returns its byte array."
+  [file-path]
+  (Files/readAllBytes (Paths/get file-path (make-array String 0))))
 
-;; BLAKE2b-256 Hashing
-(defn blake2b-hash [file-bytes]
-  (let [digest (Blake2b256.)]
-    (-> (.digest digest file-bytes)
-        (Base64/getEncoder)
-        (.encodeToString))))
 
-;; SHA-256 Hashing
-(defn sha256-hash [file-bytes]
-  (let [digest (SHA256Digest.)]
-    (.update digest file-bytes 0 (count file-bytes))
-    (let [output (byte-array 32)]
-      (.doFinal digest output 0)
-      (-> (Base64/getEncoder) (.encodeToString output)))))
+(defn benchmark-hashes
+  "Runs a benchmark comparing SHA-256 and Blake2b-256 performance on the given file."
+  [file-path]
+  (let [file-data (read-file-bytes file-path)]
+      (println "Benchmarking SHA-256...")
+      (crit/quick-bench (crypto/sha256-hash file-data))
 
-;; Benchmark Function
-(defn benchmark-hashes [file-path]
-  (let [file-bytes (read-file-bytes file-path)]
-    (println "Benchmarking BLAKE2b-256...")
-    (crit/quick-bench (blake2b-hash file-bytes))
-
-    (println "\nBenchmarking SHA-256...")
-    (crit/quick-bench (sha256-hash file-bytes))))
+      (println "Benchmarking Blake2b-256...")
+      (crit/quick-bench (crypto/blake2b-hash file-data))))
