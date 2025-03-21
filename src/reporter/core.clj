@@ -8,7 +8,9 @@
    [clojure.java.jdbc :as jdbc]
    [cheshire.core :as json]
    [clojure.string :as str]
-   [clj-bean.core :as bean])
+   [reporter.template-memoisation :refer [get-compiled-template]]
+   ;; [clj-bean.core :as bean]
+   )
   (:import [net.sf.jasperreports.engine
             JasperCompileManager
             JasperFillManager
@@ -61,6 +63,20 @@
     (JasperExportManager/exportReportToPdfStream jasper-print byte-array-output)
     (.toByteArray byte-array-output))) ;; Convert to byte array for storage
 
+(defn compile-report-to-sqlite-blob
+  [template-file]
+  (let [compiled-template (compile-report template-file)
+        byte-stream (java.io.ByteArrayOutputStream.)]
+    (with-open [obj-out (java.io.ObjectOutputStream. byte-stream)]
+      (.writeObject obj-out compiled-template))
+    (.toByteArray byte-stream)))
+
+(defn blob-to-jasper-report
+  "Converts a BLOB (byte array) from the database into a JasperReport object."
+  [compiled-report-blob]
+  (with-open [input-stream (java.io.ByteArrayInputStream. compiled-report-blob)]
+    (net.sf.jasperreports.engine.util.JRLoader/loadObject input-stream)))
+
 ;; (defn fill-report
 ;;   "Fills a compiled Jasper report with data."
 ;;   [compiled-report-path data]
@@ -73,9 +89,19 @@
   (JasperExportManager/exportReportToPdfFile filled-report output-path)
   (println (str "PDF saved to: " output-path)))
 
+;; (defn generate-pdf-report
+;;   [template-path output-path db-connection data-table-name]
+;;   (let [compiled-report (JasperCompileManager/compileReport template-path)
+;;         parameters (java.util.HashMap.)]
+;;     (.put parameters "TABLE_NAME" data-table-name)
+;;     (JasperExportManager/exportReportToPdfFile
+;;      (JasperFillManager/fillReport compiled-report parameters db-connection)
+;;      output-path)))
+
 (defn generate-pdf-report
-  [template-path output-path db-connection data-table-name]
-  (let [compiled-report (JasperCompileManager/compileReport template-path)
+  [template-path output-path db-connection data-table-name db-specification]
+  (let [compiled-report-blob (get-compiled-template db-specification template-path)
+        compiled-report (blob-to-jasper-report compiled-report-blob)
         parameters (java.util.HashMap.)]
     (.put parameters "TABLE_NAME" data-table-name)
     (JasperExportManager/exportReportToPdfFile
@@ -102,7 +128,7 @@
   (first (jdbc/query db-specification ["SELECT * FROM report_jobs WHERE state = 'available' ORDER BY inserted_at LIMIT 1"])))
 
 ;; Proposed code, to be tested
-(defn process-job [db-connection job]
+(defn process-job [db-connection job db-specification]
   (let [report-name (:report_name job)
         system-template-name (:system_template_name job)
         template-path (:template_path job)
@@ -113,7 +139,7 @@
         output-type (:output_type job)
         output-path (str output-path "/" output-filename)]
     (if (= output-type "pdf")
-      (generate-pdf-report template-path output-path db-connection primary-data-table-name))))
+      (generate-pdf-report template-path output-path db-connection primary-data-table-name db-specification))))
 
     ;; (jdbc/update! db-spec :report_jobs
     ;;               {:status "completed" :result_path output-path :updated_at (java.time.LocalDateTime/now)}

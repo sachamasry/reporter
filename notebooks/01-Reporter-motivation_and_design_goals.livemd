@@ -955,3 +955,54 @@ The second issue is far easier to alleviate. Data must remain in the table only 
 <!-- livebook:{"break_markdown":true} -->
 
 As the generated report must be kept around to provide those performance guarantees, the privacy aspect can _never be fully assured_, as one look at the report will provide the data to a motivated party. However, we must keep in mind that the primary methods of report dissemination—printing to hand out, and sending by email—are not in themselves secure, allowing analysis long into the future through these channels, thus providing important context to this risk. All that is to say, generated reports contain confidential data which can only be secured by the system so far and no more.
+
+## Development phases
+
+### Phase 1: Development of rudimentary prototype
+
+* Exported report data as a JSON file
+* Designed template in Jasper Studio, using JSON data file as input
+* Iteratively used 'preview' to check on final report look and feel, until ready
+* Exported the preview into a PDF file
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 2: Initial creation of Jasper library wrapper
+
+* Developed _thin_ Clojure wrapper around the Jasper Reports library
+* Implemented ingestion of JSON data, from file
+* Parsed JSON data within CLojure
+* Converted JSON data to Java Beans objects
+* Passing of Java Beans as report input data and fully manual input template, output format and name
+* Achieved first identical report generation using the wrapper
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 3: Conversion to use of SQLite database
+
+* Moved away from JSON file interchange to use of an externally-managed SQLite database for data interchange
+* Data exchanged as JSON in database fields at first
+  * Clojure still parses JSON, converting it to Java Beans
+* Created an official report job queue table, storing all information necessary for each requested report, including a view to future report _memoisation_
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 4: Creation of temporary SQLite tables for data interchange
+
+* Upon report job creation, temporary tables are created to store report input data, in a bid to reduce memory use in parsing to and from JSON
+* The report template now uses a database data adapter as primary data source, with data table name specified in `TABLE_NAME` parameter
+* Clojure now reads the temporary table name, passing it to the library in the above parameter
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 5: Making Reporter more independent
+
+* In a move away from specifying input template, location for compiled `.jasper` template, output path and file name, extended reort job table to handle all above information, leaving Reporter to just read the record and execute the job
+* In further reducing use of system resources, moved to memoising compiled templates in dedicated table
+  * This table converts compiled report in-memory object to an SQLite `BLOB`, storing the compiled template directly in the memoisation table, reducing file creation clutter on disk
+  * SQLite `BLOB` objects are read and converted back to in-memory objects to pass to report generator
+  * Compiling a simple client timesheet report, using only five fields, from system start would take approximately half a second. With the memoisation, this is expected to have dropped by an order of magnitude.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 6: Storage of generated report files in database record

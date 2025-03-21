@@ -1,6 +1,6 @@
 (ns reporter.template-memoisation
   (:require [clojure.java.jdbc :as jdbc]
-            [reporter.core :refer [compile-report-to-pdf-byte-array]]
+            [reporter.core :refer [compile-report-to-sqlite-blob]]
             [reporter.hash-functions :refer [sha256-hash]]
             [reporter.utilities.datetime :refer [current-datetime]])
   (:import [java.nio.file Files Paths LinkOption]))
@@ -28,7 +28,7 @@
   (let [file-hash (sha256-hash file-path)
         last-modified (get-file-last-modified file-path)
         timestamp (current-datetime)
-        compiled-bytes (compile-report-to-pdf-byte-array file-path)]
+        compiled-bytes (compile-report-to-sqlite-blob file-path)]
     (jdbc/insert! db-specification :report_templates_memoisation
                   {:template_path file-path
                    :template_hash file-hash
