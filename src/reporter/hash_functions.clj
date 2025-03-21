@@ -1,6 +1,7 @@
-(ns reporter.crypto
+(ns reporter.hash-functions
   (:import [java.security Security MessageDigest]
-           [org.bouncycastle.jcajce.provider.digest Blake2b]
+           [java.math BigInteger]
+           [org.bouncycastle.jcajce.provider.digest Blake2b$Blake2b256]
            [org.bouncycastle.jce.provider BouncyCastleProvider]))
 
 ;; Ensure BouncyCastle provider is registered
@@ -16,6 +17,9 @@
 (defn blake2b-hash
   "Computes the Blake2b-256 hash of the given input (string or byte array)."
   [input]
-  (let [digest (MessageDigest/getInstance "BLAKE2B-256" "BC")
-        bytes (if (string? input) (.getBytes input "UTF-8") input)]
-    (format "%064x" (BigInteger. 1 (.digest digest bytes)))))
+  (let [digest (Blake2b$Blake2b256.)
+        bytes  (if (string? input)
+                 (.getBytes input "UTF-8")  ; Convert only if it's a string
+                 input)]  ; Assume it's already a byte array
+    (.update digest bytes)
+    (format "%064x" (BigInteger. 1 (.digest digest)))))

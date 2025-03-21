@@ -40,6 +40,27 @@
   [template-path destination-path]
   (JasperCompileManager/compileReportToFile template-path destination-path))
 
+;; (defn input-stream-to-byte-array [input-stream]
+;;   (with-open [is input-stream]
+;;     (let [byte-array (java.io.ByteArrayOutputStream.)]
+;;       (io/copy is byte-array)
+;;       (.toByteArray byte-array))))
+
+;; (defn compile-report-to-sqlite-blob
+;;   [template-file]
+;;   (let [compiled-template (compile-report template-file)]
+;;     (input-stream-to-byte-array compiled-template)))
+
+(defn compile-report-to-pdf-byte-array
+  "Compiles a JRXML template into a PDF byte array."
+  [template-path]
+  (let [compiled-report (compile-report template-path)
+        jasper-print (JasperFillManager/fillReport compiled-report nil nil) ;; Fill report with data (use nil if no data)
+        byte-array-output (java.io.ByteArrayOutputStream.)]
+    ;; Export the compiled JasperPrint to PDF and write it to the byte array output stream
+    (JasperExportManager/exportReportToPdfStream jasper-print byte-array-output)
+    (.toByteArray byte-array-output))) ;; Convert to byte array for storage
+
 ;; (defn fill-report
 ;;   "Fills a compiled Jasper report with data."
 ;;   [compiled-report-path data]

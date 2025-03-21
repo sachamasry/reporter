@@ -113,7 +113,7 @@ To demonstrate the feasibility of Jaspersoft Studio, a sample report template wa
 
 <!-- livebook:{"break_markdown":true} -->
 
-In the early prototyping stage, Studio made it easy to finesse the demonstration timesheet report, finally exporting it to PDF, all from the visual user interface. The relative simplicity of the entire prototyping step proved that Jasper—the solution—meets all pragmatic project needs, determining that the entire solution would be architected around the Jasper Reports library.
+In the early prototyping stage, Studio made it easy to finesse the demonstration timesheet report, finally exporting it to PDF, all from the visual user interface. The relative simplicity of the entire prototyping step proved that Jasper—as a report-generating solution—meets all pragmatic project needs, determining that the entire solution would be architected around the Jasper Reports library.
 
 ## Inter-process communication
 
