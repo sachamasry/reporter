@@ -1,11 +1,15 @@
 (ns reporter.db
   (:require [clojure.java.jdbc :as jdbc]
-            [reporter.utilities.json :refer [parse-json]]))
+            [reporter.utilities.json :refer [parse-json]]
+            [reporter.utilities.time :refer [current-datetime]]))
+
+(defn get-db-specification [db-path]
+  {:classname   "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname     db-path})
 
 (def db-specification
-  {:classname "org.sqlite.JDBC"
-   :subprotocol "sqlite"
-   :subname "/Users/sacha/Development/elixir/klepsidra/db/reporter_dev.db"})
+  (get-db-specification "/Users/sacha/Development/elixir/klepsidra/db/reporter_dev.db"))
 ;; :subname "/Users/sacha/bin/klepsidra/db/reporter.db"})  
 
 ;; Get a real JDBC connection
@@ -27,6 +31,12 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE state = 'available' ORDER BY inserted_at LIMIT 1"])))
 
+(defn get-report-job [db-specification job-id]
+  (first
+   (jdbc/query
+    db-specification
+    ["SELECT * FROM report_jobs WHERE job_id = ?" job-id])))
+
 (defn process-job [db-connection job db-specification]
   (let [report-name (:report_name job)
         system-template-name (:system_template_name job)
@@ -38,7 +48,8 @@
         output-type (:output_type job)
         output-path (str output-path "/" output-filename)]
     (if (= output-type "pdf")
-      (generate-pdf-report template-path output-path db-connection primary-data-table-name db-specification))))
+      (println "PDF format selected. Mock stand-in for complete function."))))
+      ;; (generate-pdf-report template-path output-path db-connection primary-data-table-name db-specification))))
 
 ;; Proposed code, to be tested
 ;; (defn process-job [job]

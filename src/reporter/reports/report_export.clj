@@ -1,5 +1,11 @@
 (ns reporter.reports.report-export
 
+  (:require [clojure.java.jdbc :as jdbc]
+            [reporter.reports.jasper-reports :refer [process-report]]
+            [reporter.db :refer [get-db-specification ]]
+            [reporter.reports.template-memoisation :refer [get-compiled-template]]
+            [reporter.reports.template-compilation :refer [blob-to-jasper-report]]
+            [reporter.utilities.time :refer [current-datetime]])
   (:import [net.sf.jasperreports.engine
             JasperCompileManager
             JasperFillManager
@@ -36,3 +42,10 @@
     (JasperExportManager/exportReportToPdfFile
      (JasperFillManager/fillReport compiled-report parameters db-connection)
      output-path)))
+
+;; (defn generate-and-store-report [db-specification job template-path]
+;;   (let [output-bytes (generate-pdf-report template-path job)]
+;;     (jdbc/insert! db-specification :report_export_memoisation
+;;                   {:job_id job-id
+;;                    :output_blob output-bytes
+;;                    :created_at (current-datetime)})))

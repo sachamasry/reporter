@@ -1,7 +1,9 @@
-(ns reporter.benchmark
-  (:require [criterium.core :as crit]
+(ns reporter.utilities.benchmarking
+  (:require [clojure.java.jdbc :as jdbc]
+            [criterium.core :as crit]
             [clojure.java.io :as io]
-            [reporter.crypto :as crypto])
+            [reporter.crypto :as crypto]
+            [reporter.utilities.datetime :refer [current-datetime]])
   (:import (java.nio.file Files Paths)
            (java.util Base64)
            [java.security MessageDigest]))

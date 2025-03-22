@@ -1,4 +1,4 @@
-(ns reporter.hash-functions
+(ns reporter.utilities.hash-functions
   (:import [java.security Security MessageDigest]
            [java.math BigInteger]
            [org.bouncycastle.jcajce.provider.digest Blake2b$Blake2b256]
