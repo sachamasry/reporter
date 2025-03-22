@@ -1,19 +1,7 @@
 (ns reporter.template-memoisation
   (:require [clojure.java.jdbc :as jdbc]
-            [reporter.core :refer [compile-report-to-sqlite-blob]]
-            [reporter.hash-functions :refer [sha256-hash]]
-            [reporter.utilities.datetime :refer [current-datetime]])
-  (:import [java.nio.file Files Paths LinkOption]))
-
-(def db-specification {:classname "org.sqlite.JDBC"
-                       :subprotocol "sqlite"
-                       :subname "/Users/sacha/Development/elixir/klepsidra/db/reporter_dev.db"})
-
-(defn get-file-last-modified
-  [file-path]
-  (-> (Paths/get file-path (into-array String []))
-      (Files/getLastModifiedTime (into-array LinkOption []))
-      (.toMillis)))
+            [reporter.utilities.hash-functions :refer [sha256-hash]]
+            [reporter.utilities.time :refer [current-datetime]])
 
 (defn lookup-memoised-template
   [db-specification file-path]
