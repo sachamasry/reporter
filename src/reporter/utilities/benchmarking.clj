@@ -2,8 +2,9 @@
   (:require [clojure.java.jdbc :as jdbc]
             [criterium.core :as crit]
             [clojure.java.io :as io]
-            [reporter.crypto :as crypto]
-            [reporter.utilities.datetime :refer [current-datetime]])
+            [reporter.utilities.hash-functions :refer [sha256-hash blake2b-hash]]
+            [reporter.utilities.time :refer [current-datetime]]
+            [reporter.reports.template-compilation :refer [compile-report]])
   (:import (java.nio.file Files Paths)
            (java.util Base64)
            [java.security MessageDigest]))
@@ -19,15 +20,15 @@
   [file-path]
   (let [file-data (read-file-bytes file-path)]
     (println "Benchmarking SHA-256...")
-    (crit/quick-bench (crypto/sha256-hash file-data))
+    (crit/quick-bench (sha256-hash file-data))
 
     (println "Benchmarking Blake2b-256...")
-    (crit/quick-bench (crypto/blake2b-hash file-data))))
+    (crit/quick-bench (blake2b-hash file-data))))
 
-;; (defn benchmark-compile-report [jrxml-path]
-;;   (let [start-time (System/nanoTime)
-;;         compiled-report (JasperCompileManager/compileReport jrxml-path)
-;;         end-time (System/nanoTime)
-;;         elapsed-ms (/ (- end-time start-time) 1e6)]
-;;     (println (str "Report compiled in " elapsed-ms " ms"))
-;;     compiled-report)) ;; Return compiled report for further use
+(defn benchmark-compile-report [template-path]
+  (let [start-time (System/nanoTime)
+        compiled-report (compile-report template-path)
+        end-time (System/nanoTime)
+        elapsed-ms (/ (- end-time start-time) 1e6)]
+    (println (str "Report compiled in " elapsed-ms " ms"))
+    compiled-report)) ;; Return compiled report for further use
