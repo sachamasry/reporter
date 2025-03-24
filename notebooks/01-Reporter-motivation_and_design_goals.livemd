@@ -1006,3 +1006,85 @@ As the generated report must be kept around to provide those performance guarant
 <!-- livebook:{"break_markdown":true} -->
 
 ### Phase 6: Storage of generated report files in database record
+
+## Performance tuning 1: File hashing algorithm
+
+I wanted to know just how much better the `BLAKE2` hasing algorithm was on Clojure, over `SHA-256`. I used the same file, the Jasper Reports client template I designed for Klepsidra, `client_template.jrxml`, an 8.1 kilobyte file (as of the 1st April 2025), hashing it in two competing algorithms designed with low hash collision susceptibility in mind.
+
+<!-- livebook:{"break_markdown":true} -->
+
+```
+reporter.core=> (reporter.utilities.benchmarking/benchmark-hashes template-path )
+
+==> Benchmarking SHA-256...
+
+Evaluation count : 1199880 in 60 samples of 19998 calls.
+             Execution time mean : 50.293520 µs
+    Execution time std-deviation : 450.343777 ns
+   Execution time lower quantile : 49.760588 µs ( 2.5%)
+   Execution time upper quantile : 51.330226 µs (97.5%)
+                   Overhead used : 6.082229 ns
+
+Found 2 outliers in 60 samples (3.3333 %)
+        low-severe       2 (3.3333 %)
+ Variance from outliers : 1.6389 % Variance is slightly inflated by outliers
+ 
+==> Benchmarking Blake2b-256...
+
+Evaluation count : 832980 in 60 samples of 13883 calls.
+             Execution time mean : 72.532550 µs
+    Execution time std-deviation : 363.004475 ns
+   Execution time lower quantile : 71.990337 µs ( 2.5%)
+   Execution time upper quantile : 73.237099 µs (97.5%)
+                   Overhead used : 6.082229 ns
+
+Found 1 outliers in 60 samples (1.6667 %)
+        low-severe       1 (1.6667 %)
+ Variance from outliers : 1.6389 % Variance is slightly inflated by outliers
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+The above results surprised my intuition: `SHA-256` came in faster than `BLAKE2` in every run, across multiple sessions, even given type-hints, taking in the region of 50–55 microseconds, versus `BLAKE2`s 65–75 microseconds, a decent improvement. Despite the latter being a newer algorithm, specially tuned for 64-bit platforms, it is consistently slower, though this could be due to the cryptographic library dependency—Bouncy Castle—being insufficiently optimised.
+
+The results speak for themselves, thus I will use `SHA-256` for all file hashing.
+
+## Performance tuning 2: Report template memoisation
+
+It makes sense to me that re-compiling the report _every time it is used_ will be computiationally expensive, and that avoiding that step would be desirable. Before taking the time to optimise this functionality, it is reasonable to quantify whether the tuning is worthwhile and pragmatic. To do this, two approaches will be benchmarked: (1) a regular Jasper Reports compile template call, which compiles the template, placing the object in memory, and (2) the same, but memoised approach, where a check for the [unique] file path is made with the database. If the report has never been compiled and there is no record for it in the memoisation table, it is compiled exactly as in step (1), with the added step of conversion from memory object to a binary stream, which is stored as an SQLite `BLOB` in a newly defined record. Then the table is once again queried, the compiled report `BLOB` returned, and converted back from a byte array into a memory object so that it is usable in exactly the same state as in the first approach. If the record exists, only the last step (binary conversion) is carried out.
+
+Clearly, approach (2) adds overhead to the first comilation time and resources, but it should more than make up for it on each subsequent call, intuitively. What is more counter-intuitive is that approach (1) takes half a second for the first compile operation, of an average and _small_ report, comprising of only five fields, but takes and order of magnitude less time for each subsequent compile operation, meaning that between Java's _warm-up_, just-in-time compilation and other optimisations, it is probably carrying out its own memoisation, which is good enough for pragmatic purposes. However, since I'm not planning to keep Reporter as a long-running process, but one that is called upon to do a task, then quit, this advantage in approach (1) will effectively disappear. Nevertheless, let's compare its benchmarking under these _ideal_ circumstances to compare against our own memoisation functionality—persisting _between_ application invocations for a difficult performance test.
+
+<!-- livebook:{"break_markdown":true} -->
+
+```clojure
+reporter.core=> (reporter.utilities.benchmarking/benchmark-compile-report db-specification template-path)
+
+==> Benchmarking template compiling...
+Evaluation count : 2220 in 60 samples of 37 calls.
+             Execution time mean : 27.674718 ms
+    Execution time std-deviation : 577.998648 µs
+   Execution time lower quantile : 26.725835 ms ( 2.5%)
+   Execution time upper quantile : 28.545233 ms (97.5%)
+                   Overhead used : 6.202546 ns
+
+==> Benchmarking get memoised template...
+Evaluation count : 930 in 6 samples of 155 calls.
+             Execution time mean : 651.908675 µs
+    Execution time std-deviation : 7.085337 µs
+   Execution time lower quantile : 642.893800 µs ( 2.5%)
+   Execution time upper quantile : 660.732440 µs (97.5%)
+                   Overhead used : 6.202546 ns
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+Despite the unnatural advantage—under planned use conditions—for approach (1), which, over many runs, averages _down to_ 27 milliseconds, as opposed to every first, cold run of the compile function elapsed time of:
+
+```
+Report compiled in 512.061334 ms
+```
+
+the fully memoised approach is 42 times faster, needing only 652 microseconds!
+
+This clearly demonstrates that the memoisation strategy, approach (2) is better, and the one to implement and rely on.

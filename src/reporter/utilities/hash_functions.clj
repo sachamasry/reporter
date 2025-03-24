@@ -9,14 +9,14 @@
 
 (defn sha256-hash
   "Computes the SHA-256 hash of the given input (string or byte array)."
-  [input]
+  ^String [^String input]
   (let [digest (MessageDigest/getInstance "SHA-256")
         bytes (if (string? input) (.getBytes input "UTF-8") input)]
     (format "%064x" (BigInteger. 1 (.digest digest bytes)))))
 
 (defn blake2b-hash
   "Computes the Blake2b-256 hash of the given input (string or byte array)."
-  [input]
+  ^String [^String input]
   (let [digest (Blake2b$Blake2b256.)
         bytes  (if (string? input)
                  (.getBytes input "UTF-8")  ; Convert only if it's a string
