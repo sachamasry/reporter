@@ -1,5 +1,6 @@
 (ns reporter.reports.template-memoisation
   (:require [clojure.java.jdbc :as jdbc]
+            [reporter.db :refer [get-report-job]]
             [reporter.utilities.file :refer [get-file-last-modified]]
             [reporter.utilities.hash-functions :refer [sha256-hash]]
             [reporter.utilities.time :refer [current-datetime]]
@@ -7,13 +8,11 @@
              :refer [compile-report-template-to-sqlite-blob blob-to-jasper-report]]))
 
 (defn get-template-path
+  "Returns the file path of the template specified in the report job `job`"
   ^String [db-specification job]
-  (let [template-id (:template_id job)]
-    (:template_path
-     (first
-      (jdbc/query
-       db-specification
-       ["SELECT template_path FROM report_templates WHERE template_id = ?" template-id])))))
+  (:template_path
+   (get-report-job db-specification job)))
+
 
 (defn lookup-memoised-template
   [db-specification ^String file-path]
@@ -24,7 +23,7 @@
    {:result-set-fn first}))
 
 (defn memoise-compiled-template
-  [db-specification ^String file-path] ;; compiled-object]
+  [db-specification ^String file-path]
   (let [^String file-hash (sha256-hash ^String file-path)
         last-modified (get-file-last-modified ^String file-path)
         timestamp (current-datetime)

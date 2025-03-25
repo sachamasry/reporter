@@ -13,7 +13,9 @@
 ;; :subname "/Users/sacha/bin/klepsidra/db/reporter.db"})  
 
 ;; Get a real JDBC connection
-(def db-connection (jdbc/get-connection db-specification))
+(defn get-db-connection
+  [db-specification]
+  (jdbc/get-connection db-specification))
 
 (defn list-defined-tables
   "Lists all tables defined in the database"
@@ -31,11 +33,13 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE state = 'available' ORDER BY inserted_at LIMIT 1"])))
 
-(defn get-report-job [db-specification job-id]
+(defn get-report-job
+  "Returns the report job record mathing the provided `ID`, from the database"
+  [db-specification ^String id]
   (first
    (jdbc/query
     db-specification
-    ["SELECT * FROM report_jobs WHERE job_id = ?" job-id])))
+    ["SELECT * FROM report_jobs WHERE id = ?" id])))
 
 (defn process-job [db-connection job db-specification]
   (let [report-name (:report_name job)

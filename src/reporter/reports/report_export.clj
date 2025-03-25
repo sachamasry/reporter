@@ -35,17 +35,16 @@
 
 (defn generate-pdf-report
   [template-path output-path db-connection data-table-name db-specification]
-  (let [compiled-report-blob (get-compiled-template db-specification template-path)
-        compiled-report (blob-to-jasper-report compiled-report-blob)
+  (let [compiled-report (get-compiled-template db-specification template-path)
         parameters (java.util.HashMap.)]
     (.put parameters "TABLE_NAME" data-table-name)
     (JasperExportManager/exportReportToPdfFile
      (JasperFillManager/fillReport compiled-report parameters db-connection)
      output-path)))
 
-;; (defn generate-and-store-report [db-specification job template-path]
-;;   (let [output-bytes (generate-pdf-report template-path job)]
-;;     (jdbc/insert! db-specification :report_export_memoisation
-;;                   {:job_id job-id
-;;                    :output_blob output-bytes
-;;                    :created_at (current-datetime)})))
+(defn generate-and-store-report [db-specification job template-path]
+  (let [output-bytes (generate-pdf-report template-path job)]
+    (jdbc/insert! db-specification :report_export_memoisation
+                  {:job_id (:id job)
+                   :output_blob output-bytes
+                   :created_at (current-datetime)})))

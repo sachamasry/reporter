@@ -10,7 +10,6 @@
            (java.util Base64)
            [java.security MessageDigest]))
 
-;; Utility: Read File Contents
 (defn read-file-bytes
   "Reads a file and returns its byte array."
   [file-path]
