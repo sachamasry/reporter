@@ -1007,6 +1007,11 @@ As the generated report must be kept around to provide those performance guarant
 
 ### Phase 6: Storage of generated report files in database record
 
+* In a move away from filesystem management, unique output report naming and name collision avoidance, exported reports are stored as SQLite `BLOB`s in the database, reducing management costs to the bare minimum
+* Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
+
+## Phase 7:
+
 ## Performance tuning 1: File hashing algorithm
 
 I wanted to know just how much better the `BLAKE2` hasing algorithm was on Clojure, over `SHA-256`. I used the same file, the Jasper Reports client template I designed for Klepsidra, `client_template.jrxml`, an 8.1 kilobyte file (as of the 1st April 2025), hashing it in two competing algorithms designed with low hash collision susceptibility in mind.

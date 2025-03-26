@@ -21,7 +21,7 @@
   "Lists all tables defined in the database"
   []
   (jdbc/query
-   db-connection
+   db-specification
    ["SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';"]))
 
 (defn get-next-job
@@ -41,7 +41,7 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE id = ?" id])))
 
-(defn process-job [db-connection job db-specification]
+(defn process-job [db-specification job]
   (let [report-name (:report_name job)
         system-template-name (:system_template_name job)
         template-path (:template_path job)

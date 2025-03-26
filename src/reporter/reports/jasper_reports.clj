@@ -1,20 +1,22 @@
 (ns reporter.reports.jasper-reports
 
-    (:require [reporter.db :refer [get-db-specification get-report-job]]
-              [reporter.reports.template-memoisation :refer [get-template-path]]
+  (:require [reporter.db :refer [get-db-specification get-db-connection get-report-job]]
+            [reporter.reports.template-memoisation :refer [get-template-path]]
               ;; [reporter.reports.report-export :refer [generate-and-store-report]]
-              [reporter.reports.report-export-memoisation :refer [get-memoised-report]])
+            [reporter.reports.report-export-memoisation :refer [get-memoised-report]])
 
   (:import [net.sf.jasperreports.engine
-               JasperCompileManager
-               JasperFillManager
-               JasperExportManager]))
+            JasperCompileManager
+            JasperFillManager
+            JasperExportManager]))
 
-;; (defn fill-report
-;;   "Fills a compiled Jasper report with data."
-;;   [compiled-report-path data]
-;;   (let [datasource (JRBeanCollectionDataSource. data)]
-;;     (JasperFillManager/fillReport compiled-report-path nil datasource)))
+(defn fill-report
+  "Fills a compiled Jasper report with data"
+  [db-specification compiled-report data-table-name]
+  (with-open [db-connection (get-db-connection db-specification)]
+    (let [parameters (java.util.HashMap.)]
+      (.put parameters "TABLE_NAME" data-table-name)
+      (JasperFillManager/fillReport compiled-report parameters db-connection))))
 
 (defn process-report [db-path job-id]
   (let [db-spec (get-db-specification db-path)
