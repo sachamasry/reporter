@@ -44,6 +44,9 @@ There are many types of report needed, depending on the activity in question, th
 * Resource allocation map, e.g. available properties, potential tenants
 * Manifest
 * List of assets
+* Company-wide or departmental periodic performance report
+* Reports to the board, to trustees
+* Report to stake- and shareholders
 
 ## Report-generating solutions considered
 
@@ -1009,12 +1012,55 @@ As the generated report must be kept around to provide those performance guarant
 
 * In a move away from filesystem management, unique output report naming and name collision avoidance, exported reports are stored as SQLite `BLOB`s in the database, reducing management costs to the bare minimum
 * Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
+* Implementation of deserialising database report `BLOB`, returning it as a downloadable/previewable file in the _requesting application_
 
-## Phase 7:
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 7: Making the report-generating application fully independent
+
+* The final phase moves towards a production-ready _Reporter_ microservice, totally independent of all report-requesting applications
+* This phase sees the input database and desired job passed to the application as an argument, ensuring it is not hard-coded anywhere in the system
+* All _dependence_ on calling applications must be carefully audited and removed; _Reporter_ has as its only job the creation of finished reports, handling in the meantime the compiling of templates and a few memoisation strategies
+  * Apart from its innate _knowledge of the shared database structure_, the report generator **must** be able to function fully independently, which means
+    * Not creating new files in its filesystem
+    * Not accepting any unexpected file inputs from its filesystem
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 8: Final code audit and cleanup
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 9: Documentation of all code
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 10: Development of a test suite and quality assurance processes
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 11: Code tightening and performance optimisations
+
+* All work in this phase is to improve the performance, resouce-use and readability of the code in _Reporter_, while always passing the tests and quality assurance processes developed
+* All code is to be made type safe, and more performant through Java _type hints_
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 12: Completion of all documentation
+
+* Creation of full developer documentation
+* Creation of full system API documentation
+* Documentation of all workflows and data flows through the system
+* Careful documentation of all data structures used for the benefit of external consuming applications
+  * Definition of any expected database-level options
+  * Detailed definition of table structure, field names and indexes
+  * Production of visual database structure, using Schema Spy, for easier developer communication
 
 ## Performance tuning 1: File hashing algorithm
 
 I wanted to know just how much better the `BLAKE2` hasing algorithm was on Clojure, over `SHA-256`. I used the same file, the Jasper Reports client template I designed for Klepsidra, `client_template.jrxml`, an 8.1 kilobyte file (as of the 1st April 2025), hashing it in two competing algorithms designed with low hash collision susceptibility in mind.
+
+Benchmarks were carried out using the [Criterium](https://cljdoc.org/d/criterium/criterium/0.4.6/api/criterium.core) benchmarking library, with its default settings. The hash functions were provided by the Bouncy Castle crypto library.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -1022,37 +1068,91 @@ I wanted to know just how much better the `BLAKE2` hasing algorithm was on Cloju
 reporter.core=> (reporter.utilities.benchmarking/benchmark-hashes template-path )
 
 ==> Benchmarking SHA-256...
+Evaluation count : 1203300 in 60 samples of 20055 calls.
+             Execution time mean : 49.896180 µs
+    Execution time std-deviation : 120.785837 ns
+   Execution time lower quantile : 49.740868 µs ( 2.5%)
+   Execution time upper quantile : 50.212322 µs (97.5%)
+                   Overhead used : 6.223124 ns
 
-Evaluation count : 1199880 in 60 samples of 19998 calls.
-             Execution time mean : 50.293520 µs
-    Execution time std-deviation : 450.343777 ns
-   Execution time lower quantile : 49.760588 µs ( 2.5%)
-   Execution time upper quantile : 51.330226 µs (97.5%)
-                   Overhead used : 6.082229 ns
-
-Found 2 outliers in 60 samples (3.3333 %)
-        low-severe       2 (3.3333 %)
- Variance from outliers : 1.6389 % Variance is slightly inflated by outliers
- 
-==> Benchmarking Blake2b-256...
-
-Evaluation count : 832980 in 60 samples of 13883 calls.
-             Execution time mean : 72.532550 µs
-    Execution time std-deviation : 363.004475 ns
-   Execution time lower quantile : 71.990337 µs ( 2.5%)
-   Execution time upper quantile : 73.237099 µs (97.5%)
-                   Overhead used : 6.082229 ns
-
-Found 1 outliers in 60 samples (1.6667 %)
+Found 7 outliers in 60 samples (11.6667 %)
         low-severe       1 (1.6667 %)
+        low-mild         3 (5.0000 %)
+        high-mild        3 (5.0000 %)
  Variance from outliers : 1.6389 % Variance is slightly inflated by outliers
+
+==> Benchmarking Blake2b-256...
+Evaluation count : 837600 in 60 samples of 13960 calls.
+             Execution time mean : 72.395799 µs
+    Execution time std-deviation : 500.998864 ns
+   Execution time lower quantile : 71.550749 µs ( 2.5%)
+   Execution time upper quantile : 73.296625 µs (97.5%)
+                   Overhead used : 6.223124 ns
 ```
 
 <!-- livebook:{"break_markdown":true} -->
 
-The above results surprised my intuition: `SHA-256` came in faster than `BLAKE2` in every run, across multiple sessions, even given type-hints, taking in the region of 50–55 microseconds, versus `BLAKE2`s 65–75 microseconds, a decent improvement. Despite the latter being a newer algorithm, specially tuned for 64-bit platforms, it is consistently slower, though this could be due to the cryptographic library dependency—Bouncy Castle—being insufficiently optimised.
+The above results surprised my intuition: `SHA-256` came in faster than `BLAKE2` in every run, across multiple sessions, even given type-hints, taking in the region of 48–55 microseconds, versus `BLAKE2`s 65–75 microseconds, a decent improvement. Despite the latter being a newer algorithm, specially tuned for 64-bit platforms, it is consistently slower, though this could be due to the cryptographic library dependency—Bouncy Castle—being insufficiently optimised.
 
-The results speak for themselves, thus I will use `SHA-256` for all file hashing.
+<!-- livebook:{"break_markdown":true} -->
+
+I wanted to take this opportunity to compare similar computation, on the same computer, just before or after the above, on Elixir, both to test the relative performance of the BEAM environment and to see if the `BLAKE2` algorithm was more tuned in Erlang. To repeat, as it is important, the computer used is the same, its status is the same—a laptop running on battery and not AC power—with the same programs open, facing a similar load.
+
+I am using _native_ crypto functionality, provided directly by BEAM, and **not** heavily optimised, low-level functions written in Rust or other systems programming language. The benchmarking is done by the [Benchee](https://github.com/bencheeorg/benchee) tool, tuned to a similar JIT warm-up time (10 seconds), running benchmarks for a similar amount of time (60 seconds), and using a parallelism of 1—single-threaded execution—aiming to run under broadly the same conditions as the Clojure benchmarker ran in.
+
+<!-- livebook:{"break_markdown":true} -->
+
+```shell
+Operating System: macOS
+CPU Information: Apple M2 Max
+Number of Available Cores: 12
+Available memory: 64 GB
+Elixir 1.18.1
+Erlang 27.2
+JIT enabled: true
+
+Benchmark suite executing with the following configuration:
+warmup: 10 s
+time: 1 min
+memory time: 0 ns
+reduction time: 2 s
+parallel: 1
+inputs: none specified
+Estimated total run time: 2 min 24 s
+
+Benchmarking BLAKE2 (:crypto) ...
+Benchmarking SHA-256 (:crypto) ...
+Calculating statistics...
+Formatting results...
+
+Name                        ips        average  deviation         median         99th %
+SHA-256 (:crypto)      301.93 K        3.31 μs   ±620.95%        3.08 μs        8.21 μs
+BLAKE2 (:crypto)        91.20 K       10.96 μs   ±152.17%       10.67 μs       15.79 μs
+
+Comparison: 
+SHA-256 (:crypto)      301.93 K
+BLAKE2 (:crypto)        91.20 K - 3.31x slower +7.65 μs
+
+Extended statistics: 
+
+Name                      minimum        maximum    sample size                     mode
+SHA-256 (:crypto)         2.96 μs    62780.71 μs        17.24 M                  3.08 μs
+BLAKE2 (:crypto)         10.42 μs    17487.08 μs         5.37 M                 10.63 μs
+
+Reduction count statistics:
+
+Name              Reduction count
+SHA-256 (:crypto)          1.65 K
+BLAKE2 (:crypto)           1.65 K - 1.00x reduction count +0 K
+
+**All measurements for reduction count were the same**
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+The difference is not only astounding, but beyond intuitive expectations. Elixir ran the `SHA-256` benchmarks on the file in _15 times faster_ than Clojure, with its `BLAKE2` results coming in at _6.6 times faster_! To be sure, `BLAKE2` underperformed in both environments, only 45% slower in Clojure, with that difference rising to as much as 330% slower in Elixir!
+
+The results speak for themselves, using the `SHA-256` algorithm for all file hashing is not only significantly faster, it is older and is available on more systems and across more languages, an important concern for _Reporter_ which exists to prevent report generation to applications in any language.
 
 ## Performance tuning 2: Report template memoisation
 

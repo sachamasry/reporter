@@ -13,28 +13,27 @@
   (:template_path
    (get-report-job db-specification job)))
 
-
 (defn lookup-memoised-template
-  [db-specification ^String file-path]
+  [db-specification ^String template-file-path]
   (jdbc/query
    db-specification
-   ["SELECT template_hash, compiled_report_template, last_modified FROM report_templates_memoisation WHERE template_path = ?"
-    file-path]
+   ["SELECT template_file_last_modified, template_file_hash, compiled_report_template, FROM report_templates_memoisation WHERE template_path = ?"
+    template-file-path]
    {:result-set-fn first}))
 
 (defn memoise-compiled-template
-  [db-specification ^String file-path]
-  (let [^String file-hash (sha256-hash ^String file-path)
-        last-modified (get-file-last-modified ^String file-path)
-        timestamp (current-datetime)
-        compiled-bytes (compile-report-template-to-sqlite-blob ^String file-path)]
+  [db-specification ^String template-file-path]
+  (let [last-modified (get-file-last-modified ^String template-file-path)
+        ^String file-hash (sha256-hash ^String template-file-path)
+        current-timestamp (current-datetime)
+        compiled-bytes (compile-report-template-to-sqlite-blob ^String template-file-path)]
     (jdbc/insert! db-specification :report_templates_memoisation
-                  {:template_path file-path
+                  {:template_path template-file-path
                    :template_hash file-hash
                    :compiled_report_template compiled-bytes
                    :last_modified last-modified
-                   :inserted_at timestamp
-                   :updated_at timestamp})))
+                   :inserted_at current-timestamp
+                   :updated_at current-timestamp})))
 
 (defn get-compiled-template
   [db-specification ^String file-path] ;; compile-fn]

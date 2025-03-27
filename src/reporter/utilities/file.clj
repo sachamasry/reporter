@@ -6,4 +6,4 @@
   [file-path]
   (-> (Paths/get file-path (into-array String []))
       (Files/getLastModifiedTime (into-array LinkOption []))
-      (.toMillis)))
+      (.to java.util.concurrent.TimeUnit/SECONDS))) ; Get time directly in seconds

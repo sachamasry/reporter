@@ -45,9 +45,9 @@
 ;;        (JasperFillManager/fillReport compiled-report parameters db-connection)
 ;;        output-path))))
 
-;; (defn generate-and-store-report [db-specification job template-path]
-;;   (let [output-bytes (generate-pdf-report template-path job)]
-;;     (jdbc/insert! db-specification :report_export_memoisation
-;;                   {:job_id (:id job)
-;;                    :output_blob output-bytes
-;;                    :created_at (current-datetime)})))
+(defn generate-and-store-report [db-specification job template-path]
+  (let [output-bytes (generate-pdf-report template-path job)]
+    (jdbc/insert! db-specification :report_export_memoisation
+                  {:job_id (:id job)
+                   :output_blob output-bytes
+                   :created_at (current-datetime)})))
