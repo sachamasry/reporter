@@ -8,10 +8,6 @@
    :subprotocol "sqlite"
    :subname     db-path})
 
-(def db-specification
-  (get-db-specification "/Users/sacha/Development/elixir/klepsidra/db/reporter_dev.db"))
-;; :subname "/Users/sacha/bin/klepsidra/db/reporter.db"})  
-
 ;; Get a real JDBC connection
 (defn get-db-connection
   [db-specification]
@@ -40,6 +36,18 @@
    (jdbc/query
     db-specification
     ["SELECT * FROM report_jobs WHERE id = ?" id])))
+
+(defn store-completed-report
+  [generated-report db-specification job-id]
+  (let [timestamp (reporter.utilities.time/current-datetime)]
+    (jdbc/update! db-specification
+                  :report_jobs
+                  {:generated_report generated-report
+                   :state "completed"
+                   :completed_at timestamp
+                   :updated_at timestamp}
+                  ["id = ?" job-id])
+    (println (str "==> PDF stored in database for job ID: " job-id))))
 
 (defn process-job [db-specification job]
   (let [report-name (:report_name job)

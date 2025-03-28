@@ -8,7 +8,7 @@
             [reporter.reports.jasper-reports :refer [process-report]]
             [reporter.reports.template-memoisation
              :refer [get-compiled-template get-template-path]]
-            ;; [reporter.reports.report-export :refer [generate-and-store-report]]
+            [reporter.reports.jasper-reports :refer [generate-and-store-report]]
             ;; [reporter.reports.report-export-memoisation :refer [get-generated-report]]
             ))
 
@@ -21,14 +21,11 @@
 
 (defn execute-job [db-path job-id]
   (let [db-specification (get-db-specification db-path)
-        job (get-report-job db-specification job-id)
-        template-path (get-template-path db-specification job)]
+        job (get-report-job db-specification job-id)]
     (if job
-      (let [template-path (get-template-path db-specification job)
-            memoised-output (get-compiled-template db-specification template-path)]
-        true))))
-        ;; (generate-and-store-report db-specification job template-path)))
-      ;; (println "Job ID not found:" job-id)
+      (let [template-path (get-template-path db-specification job)]
+        (generate-and-store-report db-specification job template-path))
+      (println "Job ID not found:" job-id))))
 
 (defn -main
   [& args]

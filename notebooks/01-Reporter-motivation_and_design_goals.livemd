@@ -1001,14 +1001,14 @@ As the generated report must be kept around to provide those performance guarant
 ### Phase 5: Making Reporter more independent
 
 * In a move away from specifying input template, location for compiled `.jasper` template, output path and file name, extended reort job table to handle all above information, leaving Reporter to just read the record and execute the job
-* In further reducing use of system resources, moved to memoising compiled templates in dedicated table
-  * This table converts compiled report in-memory object to an SQLite `BLOB`, storing the compiled template directly in the memoisation table, reducing file creation clutter on disk
+* Further reducing use of system resources, moved to memoising compiled templates in dedicated table
+  * Converting compiled report in-memory objects to an SQLite `BLOB`, storing the compiled template directly in the memoisation table, reducing file creation clutter on disk
   * SQLite `BLOB` objects are read and converted back to in-memory objects to pass to report generator
   * Compiling a simple client timesheet report, using only five fields, from system start would take approximately half a second. With the memoisation, this is expected to have dropped by an order of magnitude.
 
 <!-- livebook:{"break_markdown":true} -->
 
-### Phase 6: Storage of generated report files in database record
+### ==> Phase 6: Storage of generated report files in database record <==
 
 * In a move away from filesystem management, unique output report naming and name collision avoidance, exported reports are stored as SQLite `BLOB`s in the database, reducing management costs to the bare minimum
 * Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
@@ -1029,6 +1029,8 @@ As the generated report must be kept around to provide those performance guarant
 
 ### Phase 8: Final code audit and cleanup
 
+* Critical audit of code for potential redundancies, eliminating code duplication
+
 <!-- livebook:{"break_markdown":true} -->
 
 ### Phase 9: Documentation of all code
@@ -1036,6 +1038,12 @@ As the generated report must be kept around to provide those performance guarant
 <!-- livebook:{"break_markdown":true} -->
 
 ### Phase 10: Development of a test suite and quality assurance processes
+
+* Double-check of all asumptions upon which _Reporter_ was built, clarifying and strongly specifying all assumptions and code, as needed
+* Development of a robust, high-coverage unit testing strategy
+* Deployment of a Property-Based Testing suite for more profound system testing
+* Development of a fully-encompassing CI/CD methodology
+* Development of integration tests for different deployment scenarios
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -1055,6 +1063,12 @@ As the generated report must be kept around to provide those performance guarant
   * Definition of any expected database-level options
   * Detailed definition of table structure, field names and indexes
   * Production of visual database structure, using Schema Spy, for easier developer communication
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Phase 13: Marketing completed project, deploying in different scenarios
+
+* Create fully documented GitHub page, describing and demonstrating the project
 
 ## Performance tuning 1: File hashing algorithm
 
