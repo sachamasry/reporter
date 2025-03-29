@@ -9,6 +9,7 @@
              :refer [get-template-path get-compiled-template]]
             [reporter.reports.report-export :refer [export-to-pdf-blob]]
             [reporter.reports.report-export-memoisation :refer [get-memoised-report]]
+            [reporter.utilities.benchmarking :refer [time-execution]]
             [reporter.utilities.json :refer [parse-json]])
 
   (:import [net.sf.jasperreports.engine
@@ -33,6 +34,13 @@
           ;; (generate-and-store-report template-path db-specification job)))
       (println "Job ID not found:" job-id))))
 
+(defn generate-report
+  [template-path db-specification primary-data-table-name]
+  (-> template-path
+      (get-compiled-template db-specification)
+      (fill-report db-specification primary-data-table-name)
+      (export-to-pdf-blob)))
+
 (defn generate-and-store-report
   [template-path db-specification job]
   (let [job-id (:id job)
@@ -41,10 +49,7 @@
         (-> temporary-data-tables
             (parse-json)
             (:primary))]
-    (println (str "Temporary data tables: " temporary-data-tables))
-    (println (str "Primary data table name  " primary-data-table-name))
-    (-> template-path
-        (get-compiled-template db-specification)
-        (fill-report db-specification primary-data-table-name)
-        (export-to-pdf-blob)
-        (store-completed-report db-specification job-id))))
+    (let [[result execution-time]
+          (time-execution
+           (fn [] (generate-report template-path db-specification primary-data-table-name)))]
+      (store-completed-report result execution-time db-specification job-id))))

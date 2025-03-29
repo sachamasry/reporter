@@ -15,7 +15,7 @@
 
 (defn list-defined-tables
   "Lists all tables defined in the database"
-  []
+  [db-specification]
   (jdbc/query
    db-specification
    ["SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';"]))
@@ -23,7 +23,7 @@
 (defn get-next-job
   "Picks up next job with a state of 'available' from the report job queue,
   returning the entire record."
-  []
+  [db-specification]
   (first
    (jdbc/query
     db-specification
@@ -38,11 +38,12 @@
     ["SELECT * FROM report_jobs WHERE id = ?" id])))
 
 (defn store-completed-report
-  [generated-report db-specification job-id]
+  [generated-report report-generation-time db-specification job-id]
   (let [timestamp (reporter.utilities.time/current-datetime)]
     (jdbc/update! db-specification
                   :report_jobs
                   {:generated_report generated-report
+                   :generation_time_ms report-generation-time
                    :state "completed"
                    :completed_at timestamp
                    :updated_at timestamp}

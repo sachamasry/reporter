@@ -45,3 +45,12 @@
     (println "")
     (println "==> Benchmarking get memoised template...")
     (crit/quick-bench (get-compiled-template db-specification template-path))))
+
+(defn time-execution
+  "Measures execution time of a function in milliseconds."
+  [f]
+  (let [start (System/nanoTime)
+        result (f)
+        end (System/nanoTime)
+        elapsed-ms (/ (- end start) 1e6)]
+    [result elapsed-ms]))

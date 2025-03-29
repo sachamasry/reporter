@@ -1008,11 +1008,15 @@ As the generated report must be kept around to provide those performance guarant
 
 <!-- livebook:{"break_markdown":true} -->
 
-### ==> Phase 6: Storage of generated report files in database record <==
+### ==> Phase 6: Storage of generated report files in database records <==
 
 * In a move away from filesystem management, unique output report naming and name collision avoidance, exported reports are stored as SQLite `BLOB`s in the database, reducing management costs to the bare minimum
-* Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
 * Implementation of deserialising database report `BLOB`, returning it as a downloadable/previewable file in the _requesting application_
+* Final 'closure' of report job, through update of `state`, `completed_at` and `updated_at` fields.
+  * Recording of report generation time in job record
+* Implemetation of database triggers to clean up temporary table(s) upon job completion, cancellation, or discardment
+* Recording of job taken up for generation, through update of `state` to 'executing', `attempted_at`, `attempted_by`, and `updated_at` fields.
+* Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
 
 <!-- livebook:{"break_markdown":true} -->
 
