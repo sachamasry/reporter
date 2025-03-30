@@ -37,9 +37,20 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE id = ?" id])))
 
+(defn start-executing-report
+  [job-id db-specification]
+  (let [timestamp (current-datetime)]
+    (jdbc/update! db-specification
+                  :report_jobs
+                  {:state "executing"
+                   :attempted_at timestamp
+                   :attempted_by ""
+                   :updated_at timestamp}
+                  ["id = ?" job-id])))
+
 (defn store-completed-report
   [generated-report report-generation-time db-specification job-id]
-  (let [timestamp (reporter.utilities.time/current-datetime)]
+  (let [timestamp (current-datetime)]
     (jdbc/update! db-specification
                   :report_jobs
                   {:generated_report generated-report

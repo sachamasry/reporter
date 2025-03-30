@@ -1,5 +1,5 @@
-(defproject reporter "0.1.0"
-  :description "Clojure wrapper around Jasper Reports report-generation software"
+(defproject reporter "0.1.5"
+  :description "Clojure report generator built on Jasper Reports report-generation library"
   :url ""
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
@@ -21,7 +21,8 @@
                  [net.sf.jasperreports/jasperreports-json "7.0.1"]
                  [net.sf.jasperreports/jasperreports-pdf "7.0.1"]
                  [criterium "0.4.6"]
-                 [org.bouncycastle/bcprov-jdk18on "1.80"]]
+                 [org.bouncycastle/bcprov-jdk18on "1.80"]
+                 [net.clojars.aneilm/lein-project-reader "0.0.1"]]
 
   :resource-paths ["resources" "resources/fonts/DRReportFontSet.jar"]
   ;; :main ^:skip-aot reporter.core
