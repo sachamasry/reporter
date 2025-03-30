@@ -1,7 +1,9 @@
 (ns reporter.db
   (:require [clojure.java.jdbc :as jdbc]
+            [cheshire.core :as json]
             [reporter.utilities.json :refer [parse-json]]
-            [reporter.utilities.time :refer [current-datetime]]))
+            [reporter.utilities.time :refer [current-datetime]]
+            [reporter.utilities.metadata :refer [generate-attempted-by]]))
 
 (defn get-db-specification [db-path]
   {:classname   "org.sqlite.JDBC"
@@ -31,20 +33,21 @@
 
 (defn get-report-job
   "Returns the report job record mathing the provided `ID`, from the database"
-  [db-specification ^String id]
+  [^String job-id db-specification]
   (first
    (jdbc/query
     db-specification
-    ["SELECT * FROM report_jobs WHERE id = ?" id])))
+    ["SELECT * FROM report_jobs WHERE id = ?" job-id])))
 
-(defn start-executing-report
-  [job-id db-specification]
-  (let [timestamp (current-datetime)]
+(defn change-state-to-executing
+  [^String job-id db-specification]
+  (let [timestamp (current-datetime)
+        attempted-by (json/generate-string (generate-attempted-by))]
     (jdbc/update! db-specification
                   :report_jobs
                   {:state "executing"
                    :attempted_at timestamp
-                   :attempted_by ""
+                   :attempted_by attempted-by
                    :updated_at timestamp}
                   ["id = ?" job-id])))
 
