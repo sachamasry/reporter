@@ -959,6 +959,44 @@ The second issue is far easier to alleviate. Data must remain in the table only 
 
 As the generated report must be kept around to provide those performance guarantees, the privacy aspect can _never be fully assured_, as one look at the report will provide the data to a motivated party. However, we must keep in mind that the primary methods of report dissemination—printing to hand out, and sending by email—are not in themselves secure, allowing analysis long into the future through these channels, thus providing important context to this risk. All that is to say, generated reports contain confidential data which can only be secured by the system so far and no more.
 
+## Database hygiene
+
+As the interchange database has been designed with the explicit aim of creating infinite temporary tables, only for them to be dropped as soon as a report is generated, by definition database size on disk will grow in line with data needs. However, when a table is dropped, SQLite doesn’t immediately return the freed space to the operating system, leading to ballooning and non-contiguous use of disk sectors—data _fragmentation_, in the vernacular. This is unmaintainable, it will gobble disk space—clearly an undesirable consequence—leading to possible data corruption!
+
+<!-- livebook:{"break_markdown":true} -->
+
+Keeping the database performant, we have three recommmended maintenance operations available, and all of these will be executed as part of a cleanup strategy, each time after the deletion of temporary tables. These are `VACUUM`, `ANALYZE`, and `REINDEX`.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### `VACUUM`: Reclaim Space & Defragment
+
+SQLite doesn’t immediately return freed space to the OS when data is deleted. `VACUUM` operations compact the database by rewriting it into a new file, removing fragmentation.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### `ANALYZE`: Optimize Query Planner
+
+SQLite maintains internal statistics for its query planner to decide the best indexes to use. `ANALYZE` operations update these statistics, ensuring the most efficient query execution.
+
+This operation should be run after significant data changes (e.g., after dropping many rows or reindexing).
+
+<!-- livebook:{"break_markdown":true} -->
+
+### `REINDEX`: Optimize Index Storage
+
+Over time, indexes can become fragmented; `REINDEX` rebuilds all indexes, improving lookup speed and reducing unnecessary disk space usage.
+
+This operation should be executed following `VACUUM`s, since `VACUUM` doesn’t rebuild indexes.
+
+<!-- livebook:{"break_markdown":true} -->
+
+When should these maintenance tasks be run?
+
+In the context of the _Reporter_ application, this series of tasks shold be executed immediately after dropping temporary tables. Beyond that, it can improve long-term _health_ to execute them on a periodic basis (e.g., once a week), and this can easily be automated.
+
+Overall, the above three operations will contribute to keeping the database compact, making it fast; it will ensure queries use the best indexing strategies; and they will run transparently, helping to self-optimise the system.
+
 ## Development phases
 
 ### Phase 1: Development of rudimentary prototype
@@ -1014,8 +1052,10 @@ As the generated report must be kept around to provide those performance guarant
 * Implementation of deserialising database report `BLOB`, returning it as a downloadable/previewable file in the _requesting application_
 * Final 'closure' of report job, through update of `state`, `completed_at` and `updated_at` fields.
   * Recording of report generation time in job record
-* Implemetation of database triggers to clean up temporary table(s) upon job completion, cancellation, or discardment
+* Clean-up of temporary table(s) upon job completion, cancellation, or discardment
+  * Automated database maintenance tasks run upon temporary table deletion: vacuum, analyse and reindexing are carried out
 * Recording of job taken up for generation, through update of `state` to 'executing', `attempted_at`, `attempted_by`, and `updated_at` fields.
+* Implementation of job _discarding_ when the maximum number of generation attempts have been exceeded
 
 <!-- livebook:{"break_markdown":true} -->
 

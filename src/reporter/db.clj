@@ -39,6 +39,66 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE id = ?" job-id])))
 
+(defn vacuum-database
+  "Runs the VACUUM operation on the SQLite database to reclaim free space and defragment it.
+   Since SQLite does not allow VACUUM inside a transaction, this function explicitly disables transactional execution."
+  [db-specification]
+  (try
+    (jdbc/db-do-commands db-specification false ["VACUUM"])
+    (println "✅ VACUUM completed: Database has been defragmented and optimized.")
+    (catch Exception e
+      (println (str "⚠️ VACUUM failed: " (.getMessage e))))))
+
+(defn analyse-database
+  "Runs the ANALYSE command to update query planner statistics."
+  [db-specification]
+  (try
+    (jdbc/execute! db-specification ["ANALYZE"])
+    (println "✅ ANALYSE completed: Query planner statistics updated.")
+    (catch Exception e
+      (println (str "⚠️ ANALYSE failed: " (.getMessage e))))))
+
+(defn reindex-database
+  "Runs REINDEX on the SQLite database to rebuild indexes and improve lookup efficiency."
+  [db-specification]
+  (try
+    (jdbc/execute! db-specification ["REINDEX"])
+    (println "✅ REINDEX completed: All indexes rebuilt for efficiency.")
+    (catch Exception e
+      (println (str "⚠️ REINDEX failed: " (.getMessage e))))))
+
+(defn run-database-maintenance
+  "Performs SQLite database maintenance operations: VACUUM, ANALYZE, and REINDEX."
+  [db-specification]
+  (vacuum-database db-specification)
+  (analyse-database db-specification)
+  (reindex-database db-specification)
+  (println "✅ Database maintenance completed."))
+
+(defn drop-temporary-tables
+  "Drops all temporary tables associated with a report job and clears the `temporary_tables_created` field."
+  [^String job-id db-specification]
+  (let [job (first (jdbc/query db-specification
+                               ["SELECT temporary_tables_created FROM report_jobs WHERE id = ?" job-id]))
+        temporary-tables (json/parse-string (:temporary_tables_created job) true)]  ;; Parse JSON to Clojure map
+    (when (seq temporary-tables)
+      (doseq [[dataset-name table-name] temporary-tables]
+        (try
+          (jdbc/execute! db-specification [(str "DROP TABLE IF EXISTS " table-name)])
+          (println (str "==> Dropped temporary table for dataset '" dataset-name "': " table-name))
+          (catch Exception e
+            (println (str "⚠️ Warning: Failed to drop table " table-name ": " (.getMessage e)))))))
+
+    ;; ✅ If all tables were successfully dropped, update the field to an empty JSON object
+    (jdbc/update! db-specification
+                  :report_jobs
+                  {:temporary_tables_created (json/generate-string {})}
+                  ["id = ?" job-id])
+    (println (str "✅ Cleared `temporary_tables_created` field for job #" job-id))
+
+    ;; ✅ Run database maintenance
+    (run-database-maintenance db-specification)))
+
 (defn change-state-to-discarded
   [^String job-id db-specification]
   (let [job (get-report-job job-id db-specification)
@@ -50,29 +110,8 @@
                    ;; :discarded_reason ""
                    :updated_at timestamp}
                   ["id = ?" job-id])
+    (drop-temporary-tables job-id db-specification)  ;; ✅ Cleanup called here
     (println (str "==> Updated job #'" job-id "' state to 'retryable'"))))
-
-;; (defn change-state-to-executing
-;;   [^String job-id db-specification]
-;;   (let [job (get-report-job job-id db-specification)
-;;         timestamp (current-datetime)
-;;         attempt (inc (:attempt job))
-;;         max-attempts (:max_attempts job)
-;;         attempted-by (json/generate-string (generate-attempted-by))]
-;;     (if (> attempt max-attempts)
-;;       (do
-;;         (jdbc/update! db-specification
-;;                       :report_jobs
-;;                       {:state "executing"
-;;                        :attempt attempt
-;;                        :attempted_at timestamp
-;;                        :attempted_by attempted-by
-;;                        :updated_at timestamp}
-;;                       ["id = ?" job-id])
-;;         (println (str "==> Updated job #'" job-id "' state to 'executing'")))
-;;       (do
-;;         (println (str "==> Unable to continue executing job #'" job-id "' changed state to 'discarded'")
-;;                  (change-state-to-discarded job-id db-specification))))))
 
 (defn change-state-to-executing
   [^String job-id db-specification]
@@ -129,6 +168,7 @@
                    :completed_at timestamp
                    :updated_at timestamp}
                   ["id = ?" job-id])
+    (drop-temporary-tables job-id db-specification)  ;; ✅ Cleanup called here
     (println (str "==> Report stored in database for job ID: " job-id "; job state updated to 'completed'"))))
 
 (defn process-job [job db-specification]
