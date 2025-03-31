@@ -39,20 +39,87 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE id = ?" job-id])))
 
-(defn change-state-to-executing
+(defn change-state-to-discarded
   [^String job-id db-specification]
-  (let [timestamp (current-datetime)
-        attempted-by (json/generate-string (generate-attempted-by))]
+  (let [job (get-report-job job-id db-specification)
+        timestamp (current-datetime)]
     (jdbc/update! db-specification
                   :report_jobs
-                  {:state "executing"
-                   :attempted_at timestamp
-                   :attempted_by attempted-by
+                  {:state "discarded"
+                   :discarded_at timestamp
+                   ;; :discarded_reason ""
                    :updated_at timestamp}
-                  ["id = ?" job-id])))
+                  ["id = ?" job-id])
+    (println (str "==> Updated job #'" job-id "' state to 'retryable'"))))
 
-(defn store-completed-report
-  [generated-report report-generation-time db-specification job-id]
+;; (defn change-state-to-executing
+;;   [^String job-id db-specification]
+;;   (let [job (get-report-job job-id db-specification)
+;;         timestamp (current-datetime)
+;;         attempt (inc (:attempt job))
+;;         max-attempts (:max_attempts job)
+;;         attempted-by (json/generate-string (generate-attempted-by))]
+;;     (if (> attempt max-attempts)
+;;       (do
+;;         (jdbc/update! db-specification
+;;                       :report_jobs
+;;                       {:state "executing"
+;;                        :attempt attempt
+;;                        :attempted_at timestamp
+;;                        :attempted_by attempted-by
+;;                        :updated_at timestamp}
+;;                       ["id = ?" job-id])
+;;         (println (str "==> Updated job #'" job-id "' state to 'executing'")))
+;;       (do
+;;         (println (str "==> Unable to continue executing job #'" job-id "' changed state to 'discarded'")
+;;                  (change-state-to-discarded job-id db-specification))))))
+
+(defn change-state-to-executing
+  [^String job-id db-specification]
+  (let [job (get-report-job job-id db-specification)
+        timestamp (current-datetime)
+        attempt (inc (:attempt job))
+        max-attempts (:max_attempts job)
+        previous-attempts (try
+                            (json/parse-string (:attempted_by job) true)
+                            (catch Exception _ {})) ;; Default to an empty map if parsing fails
+        new-attempt-metadata (generate-attempted-by)
+        updated-attempts (assoc previous-attempts (str attempt) new-attempt-metadata)
+        attempted-by-json (json/generate-string updated-attempts)]
+    (if (> attempt max-attempts)
+      (do
+        (jdbc/update! db-specification
+                      :report_jobs
+                      {:state "discarded"
+                       :updated_at timestamp}
+                      ["id = ?" job-id])
+        (println (str "==> Job #'" job-id "' has exceeded max attempts, marking it as 'discarded'.")))
+      (do
+        (jdbc/update! db-specification
+                      :report_jobs
+                      {:state "executing"
+                       :attempt attempt
+                       :attempted_at timestamp
+                       :attempted_by attempted-by-json
+                       :updated_at timestamp}
+                      ["id = ?" job-id])
+        (println (str "==> Updated job #'" job-id "' state to 'executing'."))))))
+
+(defn change-state-to-retryable
+  [^String job-id db-specification]
+  (let [job (get-report-job job-id db-specification)
+        attempt (:attempt job)
+        max_attempts (:max_attempts job)
+        timestamp (current-datetime)]
+    (jdbc/update! db-specification
+                  :report_jobs
+                  {:state "retryable"
+                   :updated_at timestamp}
+                  ["id = ?" job-id])
+    (println (str "==> Updated job #'" job-id "' state to 'retryable'"))))
+
+(defn store-generated-report
+  [generated-report report-generation-time job-id db-specification]
   (let [timestamp (current-datetime)]
     (jdbc/update! db-specification
                   :report_jobs
@@ -62,9 +129,9 @@
                    :completed_at timestamp
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (println (str "==> PDF stored in database for job ID: " job-id))))
+    (println (str "==> Report stored in database for job ID: " job-id "; job state updated to 'completed'"))))
 
-(defn process-job [db-specification job]
+(defn process-job [job db-specification]
   (let [report-name (:report_name job)
         system-template-name (:system_template_name job)
         template-path (:template_path job)

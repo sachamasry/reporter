@@ -4,7 +4,7 @@
              :refer [get-db-specification
                      get-db-connection
                      get-report-job
-                     store-completed-report]]
+                     store-generated-report]]
             [reporter.reports.template-memoisation
              :refer [get-template-path get-compiled-template]]
             [reporter.reports.report-export :refer [export-to-pdf-blob]]
@@ -24,32 +24,30 @@
       (JasperFillManager/fillReport compiled-report parameters db-connection))))
 
 (defn process-report [db-path job-id]
-  (let [db-spec (get-db-specification db-path)
-        job (get-report-job db-spec job-id)]
+  (let [db-specification (get-db-specification db-path)
+        job (get-report-job job-id db-specification)]
     (if job
-      (let [template-path (get-template-path db-spec job)
-            memoised-output (get-memoised-report db-spec job-id)]
+      (let [template-path (get-template-path db-specification job)
+            memoised-output (get-memoised-report db-specification job-id)]
         (if memoised-output
-          (println "Using memoized report for job" job-id)))
+          (println "Using memoised report for job" job-id)))
           ;; (generate-and-store-report template-path db-specification job)))
       (println "Job ID not found:" job-id))))
 
 (defn generate-report
-  [template-path db-specification primary-data-table-name]
+  [template-path primary-data-table-name db-specification]
   (-> template-path
       (get-compiled-template db-specification)
       (fill-report db-specification primary-data-table-name)
       (export-to-pdf-blob)))
 
 (defn generate-and-store-report
-  [template-path db-specification job]
-  (let [job-id (:id job)
-        temporary-data-tables (:temporary_tables_created job)
-        primary-data-table-name
+  [template-path job-id temporary-data-tables db-specification]
+  (let [primary-data-table-name
         (-> temporary-data-tables
             (parse-json)
             (:primary))]
     (let [[result execution-time]
           (time-execution
-           (fn [] (generate-report template-path db-specification primary-data-table-name)))]
-      (store-completed-report result execution-time db-specification job-id))))
+           (fn [] (generate-report template-path primary-data-table-name db-specification)))]
+      (store-generated-report result execution-time job-id db-specification))))

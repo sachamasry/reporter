@@ -3,7 +3,7 @@
   needed for interfacing with the Java Reports library, and prototype code
   demonstrating a working report-generating solution."
 
-  (:require [reporter.db :refer [get-db-specification get-report-job]]
+  (:require [reporter.db :refer [get-db-specification get-report-job change-state-to-executing]]
             [reporter.reports.template-memoisation :refer [get-template-path]]
             [reporter.reports.jasper-reports :refer [process-report]]
             [reporter.reports.template-memoisation
@@ -21,11 +21,14 @@
 
 (defn execute-job [db-path job-id]
   (let [db-specification (get-db-specification db-path)
-        job (get-report-job db-specification job-id)]
+        job (get-report-job job-id db-specification)]
     (if job
-      (let [template-path (get-template-path db-specification job)]
-        (generate-and-store-report db-specification job template-path))
-      (println "Job ID not found:" job-id))))
+      (let [template-path (get-template-path db-specification job)
+            temporary-data-tables (:temporary_tables_created job)]
+        (println (str "=> Working on job #'" job-id "'..."))
+        (change-state-to-executing job-id db-specification)
+        (generate-and-store-report template-path job-id temporary-data-tables db-specification))
+      (println "=> Job ID not found:" job-id))))
 
 (defn -main
   [& args]

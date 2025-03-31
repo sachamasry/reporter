@@ -32,4 +32,4 @@
                :pid-host pid-host
                :jvm-version jvm-version
                :start-time start-time
-               :timestamp (time/current-datetime)))))
+               :attempted_at (time/current-datetime)))))

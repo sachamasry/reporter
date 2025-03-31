@@ -1016,7 +1016,6 @@ As the generated report must be kept around to provide those performance guarant
   * Recording of report generation time in job record
 * Implemetation of database triggers to clean up temporary table(s) upon job completion, cancellation, or discardment
 * Recording of job taken up for generation, through update of `state` to 'executing', `attempted_at`, `attempted_by`, and `updated_at` fields.
-* Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -1028,6 +1027,7 @@ As the generated report must be kept around to provide those performance guarant
   * Apart from its innate _knowledge of the shared database structure_, the report generator **must** be able to function fully independently, which means
     * Not creating new files in its filesystem
     * Not accepting any unexpected file inputs from its filesystem
+* Implementation of generated report memoisation, using file modified datetime and parameter and dataset fingerprinting to eliminate redundant report generation requests
 
 <!-- livebook:{"break_markdown":true} -->
 

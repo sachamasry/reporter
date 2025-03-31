@@ -1,16 +1,16 @@
-C Implemented\sa\sfunction\sto\sfully\sspecify\san\s`attempted_by`\sJSON\sobject,\sand\sa\sfunction\s`change-state-to-executing`,\sto\shave\sa\sway\sto\stake\sa\sjob\sout\sof\sthe\s'available'\sstate,\sbefore\sit\sis\s'complete'.
-D 2025-03-30T03:40:00.000
+C Started\sadding\smore\srobust\sreport\sjob\sstate\stracking,\sreporting\sand\stransition\sbehaviour,\sparticularly\s'available'\s->\s'executing',\s'executing'\s->\s'completed',\sand\s'executing'\s->\s'discarded'\sfor\sbreaching\sthe\smaximum-defined\sattempts\sfor\sthe\sjob.
+D 2025-03-31T14:27:00.000
 F CHANGELOG.md ca243f60ece659c6ae894c5eb45694de19f6002a55a184c99eadd5ed55024f00
 F LICENSE ffb277fcc43e257bc7717c33c4d7e745a5454eb57aa6a08c320e8145351f8f49
 F README.md 8e9509c61cc58b605623314be97b0460f77a8ce6eec93626909e709166e79289
 F doc/intro.md cd7a08adb034f8925a2639659d52919c6941fa4dc49d51527786a59c7265df88
-F notebooks/01-Reporter-motivation_and_design_goals.livemd 5dbde58a2ce34600de021494949c8c7fb13e3ec32661f1a02f38f5a76db9da17
+F notebooks/01-Reporter-motivation_and_design_goals.livemd 47b2ebf78f01e7853d51e0bcd8c59284c8fa05f8923824e435aea133736af6ce
 F project.clj 856c0fdd436b7180f8577dbf194dd61cf6486cde5cb8ca3aa4f3cce75abb7370
 F resources/fonts/DRReportFontSet.jar 619b3252702838f0578733cb1bd3ba32dad4fee331e6bb6b2663a656f75916c0
 F resources/jasperreports.properties c5600ca37172dc808ed59d6ce2d4ca520c7e232135a51c7e9633977adb83e2de
-F src/reporter/core.clj d5e35ba6894916b7a94f15e1b5fdbfd46de4f4fc1ac1a934dd49837faaf400fa
-F src/reporter/db.clj 419aed615848d1f4976736a4bf8fc41b64106779bb9064bbc43595560ed7dfb9
-F src/reporter/reports/jasper_reports.clj b8f8e18348855a4581cc3d48cd80e938f093de625c3b5cf556a3a07e0ba7e32d
+F src/reporter/core.clj f592c362f7eaf8658033dd1368890abdcdf7c42b9bdf2f26a9ddeb32d5523b90
+F src/reporter/db.clj 8572ddbff6a6fd70ee235ef33ef6466f8c10b10d5a51b5e77b034815947a0675
+F src/reporter/reports/jasper_reports.clj d81c5d93ef7bd15c8ff5a170b6dfe6dc5498326d6bc0b343e4bee03bbeaeecfe
 F src/reporter/reports/report_export.clj 010dbc4c6b27f5c5422944f945cc5515cd5a97ad07252238d13d89398dbcac36
 F src/reporter/reports/report_export_memoisation.clj 31d1303562bf09e5242d5313a0e2cfc9a72c4347ca2a97403d450d40171968d4
 F src/reporter/reports/template_compilation.clj 311dea09215d67ca6eb3ba506083d8a8424d857188b72077ef434525dfe72ac7
@@ -19,11 +19,11 @@ F src/reporter/utilities/benchmarking.clj 09c797edead7aa688cf9987011eca050324e4e
 F src/reporter/utilities/file.clj 1df2c4cc94d53c45ab599a02e484f149c41dfedce987ae6f6c855e701860a37a
 F src/reporter/utilities/hash_functions.clj 597d133cbab417b41d95c0a1bc52fbfbb933172af6ed20da502eb4d01e5a96b9
 F src/reporter/utilities/json.clj a54e2376a0536c2d6df002e36f9fdc244cab82c6ca7d85b7ba75f43a3bdce4aa
-F src/reporter/utilities/metadata.clj 591c68e443e9fd7f037408e09f50d5e17f380079d327cf33d7b8fe4409b9dfc7
+F src/reporter/utilities/metadata.clj 56b7ff81eb5531fb7476f1613581c8cd58d6e45ba5122027ee0ed682ff756c6a
 F src/reporter/utilities/time.clj b6b11157c01b015391396c16a02494f373bc3288a7cb9d8000e43b44b57aa2f4
 F test/reporter/core_test.clj 606cc3d9eb3a871d6a469d06434044290309a4c3ccfe0cc388567c25d6831cff
-P 46a10525fe615c6b8e115dc609dec4a38e1809e408d1e0397e52b488a4731ca1
-R 80930ad8f4a2cca7735ef53a5607943e
+P f40af1731ab575d353c9187200292942df75fed096345b613d836bcee35a7e59
+R c50f269be6f3bb138b1c0541dc7a7303
 U sacha
-Z ec21f1d7ae483e67eb5e98b6475c2205
+Z d9a35193ca0a943be567aeed4163aff7
 # Remove this line to create a well-formed Fossil manifest.
