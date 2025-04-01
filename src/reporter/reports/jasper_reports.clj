@@ -4,7 +4,7 @@
              :refer [get-db-specification
                      get-db-connection
                      get-report-job
-                     store-generated-report]]
+                     complete-job-and-store-report]]
             [reporter.reports.template-memoisation
              :refer [get-template-path get-compiled-template]]
             [reporter.reports.report-export :refer [export-to-pdf-blob]]
@@ -50,4 +50,4 @@
     (let [[result execution-time]
           (time-execution
            (fn [] (generate-report template-path primary-data-table-name db-specification)))]
-      (store-generated-report result execution-time job-id db-specification))))
+      (complete-job-and-store-report result execution-time job-id db-specification))))

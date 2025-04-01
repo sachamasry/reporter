@@ -33,3 +33,12 @@
                :jvm-version jvm-version
                :start-time start-time
                :attempted_at (time/current-datetime)))))
+
+(defn get-system-state
+  []
+  {:memory_free_mb (/ (.freeMemory (Runtime/getRuntime)) 1048576)  ;; Convert bytes to MB
+   :cpu_load (.getSystemLoadAverage (ManagementFactory/getOperatingSystemMXBean))})
+
+(defn get-username
+  []
+  (System/getProperty "user.name"))

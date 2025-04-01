@@ -39,6 +39,11 @@
     db-specification
     ["SELECT * FROM report_jobs WHERE id = ?" job-id])))
 
+(defn report-partially-generated?
+  [^String job-id db-specification]
+  (let [job (get-report-job job-id db-specification)]
+    (not (nil? (:generated_report job)))))  ;; If generated_report has any data, return true
+
 (defn vacuum-database
   "Runs the VACUUM operation on the SQLite database to reclaim free space and defragment it.
    Since SQLite does not allow VACUUM inside a transaction, this function explicitly disables transactional execution."
@@ -78,8 +83,9 @@
 (defn drop-temporary-tables
   "Drops all temporary tables associated with a report job and clears the `temporary_tables_created` field."
   [^String job-id db-specification]
-  (let [job (first (jdbc/query db-specification
-                               ["SELECT temporary_tables_created FROM report_jobs WHERE id = ?" job-id]))
+  (let [job (first
+             (jdbc/query db-specification
+                         ["SELECT temporary_tables_created FROM report_jobs WHERE id = ?" job-id]))
         temporary-tables (json/parse-string (:temporary_tables_created job) true)]  ;; Parse JSON to Clojure map
     (when (seq temporary-tables)
       (doseq [[dataset-name table-name] temporary-tables]
@@ -99,19 +105,60 @@
     ;; ✅ Run database maintenance
     (run-database-maintenance db-specification)))
 
-(defn change-state-to-discarded
+(defn change-state-to-available
   [^String job-id db-specification]
-  (let [job (get-report-job job-id db-specification)
-        timestamp (current-datetime)]
+  (let [timestamp (current-datetime)]
+    (jdbc/update! db-specification
+                  :report_jobs
+                  {:state "available"
+                   ;; :available_metadata ""
+                   :updated_at timestamp}
+                  ["id = ?" job-id])
+    (println (str "==> Updated job #'" job-id "' state to 'available'"))))
+
+(defn change-state-to-discarded
+  [^String job-id ^String reason db-specification]
+  (let [timestamp (current-datetime)]
+        ;; previous-attempts (try
+        ;;                     (json/parse-string (:attempted_by job) true)
+        ;;                     (catch Exception _ {})) ;; Default to an empty map if parsing fails
+        ;; new-attempt-metadata (generate-attempted-by)
+        ;; updated-attempts (assoc previous-attempts (str attempt) new-attempt-metadata)
+        ;; attempt-metadata (json/generate-string updated-attempts)]
+        ;; system-state (get-system-state)
+        ;; job (get-report-job job-id db-specification)
+        ;; metadata {:reason reason
+        ;;           :discarded_at timestamp
+        ;;           :system_state system-state
+        ;;           :failure_type (get-failure-type job)
+        ;;           :last_attempt_duration_ms (get-last-attempt-duration job)
+        ;;           :previous_attempts_count (:attempt job)}]
     (jdbc/update! db-specification
                   :report_jobs
                   {:state "discarded"
                    :discarded_at timestamp
-                   ;; :discarded_reason ""
+                   ;; :discarding_metadata ""
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (drop-temporary-tables job-id db-specification)  ;; ✅ Cleanup called here
-    (println (str "==> Updated job #'" job-id "' state to 'retryable'"))))
+    (println (str "==> Updated job #'" job-id "' state to 'discarded'"))))
+
+(defn discard-job
+  [^String job-id ^String reason db-specification]
+  (change-state-to-discarded job-id reason db-specification)
+  (drop-temporary-tables job-id db-specification))  ;; ✅ Drop temp tables here!
+
+;; Discarding metadata example
+;; {
+;;   "reason": "Max attempts exceeded",
+;;   "discarded_at": "2025-04-04T16:45:12",
+;;   "system_state": {
+;;     "memory_free_mb": 850,
+;;     "cpu_load": 45.2
+;;   },
+;;   "failure_type": "Timeout",
+;;   "last_attempt_duration_ms": 8200,
+;;   "previous_attempts_count": 3
+;; }
 
 (defn change-state-to-executing
   [^String job-id db-specification]
@@ -124,14 +171,10 @@
                             (catch Exception _ {})) ;; Default to an empty map if parsing fails
         new-attempt-metadata (generate-attempted-by)
         updated-attempts (assoc previous-attempts (str attempt) new-attempt-metadata)
-        attempted-by-json (json/generate-string updated-attempts)]
+        attempt-metadata (json/generate-string updated-attempts)]
     (if (> attempt max-attempts)
       (do
-        (jdbc/update! db-specification
-                      :report_jobs
-                      {:state "discarded"
-                       :updated_at timestamp}
-                      ["id = ?" job-id])
+        (change-state-to-discarded job-id "Max attempts exceeded" db-specification)
         (println (str "==> Job #'" job-id "' has exceeded max attempts, marking it as 'discarded'.")))
       (do
         (jdbc/update! db-specification
@@ -139,7 +182,7 @@
                       {:state "executing"
                        :attempt attempt
                        :attempted_at timestamp
-                       :attempted_by attempted-by-json
+                       :attempt_metadata attempt-metadata
                        :updated_at timestamp}
                       ["id = ?" job-id])
         (println (str "==> Updated job #'" job-id "' state to 'executing'."))))))
@@ -157,8 +200,8 @@
                   ["id = ?" job-id])
     (println (str "==> Updated job #'" job-id "' state to 'retryable'"))))
 
-(defn store-generated-report
-  [generated-report report-generation-time job-id db-specification]
+(defn change-state-to-completed
+  [generated-report report-generation-time ^String job-id db-specification]
   (let [timestamp (current-datetime)]
     (jdbc/update! db-specification
                   :report_jobs
@@ -166,10 +209,48 @@
                    :generation_time_ms report-generation-time
                    :state "completed"
                    :completed_at timestamp
+                   ;; :completed_metadata ""
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (drop-temporary-tables job-id db-specification)  ;; ✅ Cleanup called here
-    (println (str "==> Report stored in database for job ID: " job-id "; job state updated to 'completed'"))))
+    (println (str "==> Job #'" job-id "' marked as completed."))))
+
+(defn complete-job-and-store-report
+  [generated-report report-generation-time job-id db-specification]
+  (change-state-to-completed generated-report report-generation-time job-id db-specification)
+  (drop-temporary-tables job-id db-specification)
+  (println (str "==> Report stored in database for job ID: " job-id "; job state updated to 'completed'")))
+
+(defn change-state-to-cancelled
+  [^String job-id ^String reason db-specification]
+  (let [timestamp (current-datetime)
+        ;; system-state (get-system-state)
+        metadata {:reason reason
+                  :canceled_at timestamp
+                  :canceled_by ""
+                  :system_state ""
+                  ;; :running_time_ms (get-job-runtime job-id db-specification)
+                  ;; :partial_progress (report-partially-generated? job-id db-specification)
+                  }]
+    (jdbc/update! db-specification
+                  :report_jobs
+                  {:state "canceled"
+                   :cancellation_metadata (json/generate-string metadata)
+                   :updated_at timestamp}
+                  ["id = ?" job-id])
+    (println (str "==> Job #'" job-id "' has been canceled."))))
+;; Cancellation metadata example
+;; {"reason" : "User requested",
+;;  "canceled_at" ​ "2025-04-04T15:12:30",
+;;  "canceled_by" ​ "admin_user",
+;;  "system_state" ​ {"memory_free_mb" ​ 1024,
+;;                    "cpu_load" ​ 23.5},
+;;  "running_time_ms" ​ 15230,
+;;  "partial_progress" ​ false}
+
+(defn cancel-job
+  [^String job-id ^String reason db-specification]
+  (change-state-to-cancelled job-id reason db-specification)
+  (drop-temporary-tables job-id db-specification))  ;; ✅ Drop temp tables here!
 
 (defn process-job [job db-specification]
   (let [report-name (:report_name job)
