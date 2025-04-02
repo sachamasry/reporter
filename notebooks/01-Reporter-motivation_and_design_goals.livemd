@@ -1046,7 +1046,7 @@ Overall, the above three operations will contribute to keeping the database comp
 
 <!-- livebook:{"break_markdown":true} -->
 
-### ==> Phase 6: Storage of generated report files in database records <==
+### Phase 6: Storage of generated report files in database records
 
 * In a move away from filesystem management, unique output report naming and name collision avoidance, exported reports are stored as SQLite `BLOB`s in the database, reducing management costs to the bare minimum
 * Implementation of deserialising database report `BLOB`, returning it as a downloadable/previewable file in the _requesting application_
@@ -1059,9 +1059,10 @@ Overall, the above three operations will contribute to keeping the database comp
 
 <!-- livebook:{"break_markdown":true} -->
 
-### Phase 7: Making the report-generating application fully independent
+### ==> Phase 7: Making the report-generating application fully independent <==
 
 * The final phase moves towards a production-ready _Reporter_ microservice, totally independent of all report-requesting applications
+* All template resources are removed from _Repoter_'s filesystem, from its definitions, including from `project.clj`, and are merely passed along when necessary. An immediate example are _font sets_ that make certain styling possible
 * This phase sees the input database and desired job passed to the application as an argument, ensuring it is not hard-coded anywhere in the system
 * All _dependence_ on calling applications must be carefully audited and removed; _Reporter_ has as its only job the creation of finished reports, handling in the meantime the compiling of templates and a few memoisation strategies
   * Apart from its innate _knowledge of the shared database structure_, the report generator **must** be able to function fully independently, which means

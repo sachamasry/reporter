@@ -46,7 +46,7 @@
   (let [primary-data-table-name
         (-> temporary-data-tables
             (parse-json)
-            (:primary))]
+            (:main_dataset_table))]
     (let [[result execution-time]
           (time-execution
            (fn [] (generate-report template-path primary-data-table-name db-specification)))]
