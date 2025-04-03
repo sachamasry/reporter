@@ -1,14 +1,16 @@
-C Updated\sdocumentation\sof\sthe\sphase\scurrently\sworked\son.\sTested\sproduction\sorchestrated\sby\sa\smock\sof\sthe\s`execute-job`\sfunction\sin\s`core.clj`,\smaking\sparameter\schanges\sto\sensure\sthis\sprocess\sworks\sonce\sagain\safter\sthe\slast\sstage\sof\srefactoring.
-D 2025-04-02T02:03:00.000
+C Created\sjustfile\sto\shelp\sorganise\sall\slein\sfunctions\sin\sone\stask\srunner.\sAdded\s`org.slf4j`\slogger\sas\sproject\sdependency.\sHaving\sconfirmed\sfull\sand\sproper\sreport\sgeneration\sfrom\swithin\sthe\sREPL\senvironment,\sstarted\scompiling\sthe\sproject\sinto\sUber\sJAR\sfiles,\sin\sorder\sto\stest\sapplication\sfrom\sterminal.\sThe\sapplication\sfails\sat\sone\sof\sthe\sgeneration\ssteps,\sand\sneeds\sdeep\slogging\sin\scritical\scode\spaths\sto\sdetermine\ssource\sof\serror.
+D 2025-04-03T03:25:00.000
 F CHANGELOG.md ca243f60ece659c6ae894c5eb45694de19f6002a55a184c99eadd5ed55024f00
 F LICENSE ffb277fcc43e257bc7717c33c4d7e745a5454eb57aa6a08c320e8145351f8f49
 F README.md 8e9509c61cc58b605623314be97b0460f77a8ce6eec93626909e709166e79289
 F doc/intro.md cd7a08adb034f8925a2639659d52919c6941fa4dc49d51527786a59c7265df88
+F justfile dbc47dbc38ce25758c5d87b3ef181fe669b4cc4184a851cedfefca946e1ba9ef
 F notebooks/01-Reporter-motivation_and_design_goals.livemd fba2356cd71468bbfe3c7adae6f5def6cfc5b4325bc0e79ce6ef19b4fc8160a5
-F project.clj 856c0fdd436b7180f8577dbf194dd61cf6486cde5cb8ca3aa4f3cce75abb7370
+F project.clj 2ea058d3c27eec114dc78fb0c1ffc00057c21ccd16bd669f98f95b596750daa6
 F resources/fonts/DRReportFontSet.jar 619b3252702838f0578733cb1bd3ba32dad4fee331e6bb6b2663a656f75916c0
 F resources/jasperreports.properties c5600ca37172dc808ed59d6ce2d4ca520c7e232135a51c7e9633977adb83e2de
-F src/reporter/core.clj f592c362f7eaf8658033dd1368890abdcdf7c42b9bdf2f26a9ddeb32d5523b90
+F resources/simplelogger.properties 75acc8e496153a7a63e87dc55faf76a639a3972043722a06a64b2bf7a5f135be
+F src/reporter/core.clj 86bf71dfd90477610d76bae9f1acb437a9aba99457411708dd26e08d777c1313
 F src/reporter/db.clj 73c0519a1e359bc8b9824cd9b8afda7c72b1fcab98f53e8171ca1e1d9ccfab25
 F src/reporter/reports/jasper_reports.clj 80149c5f347adc8e25e5c65a63f7609d9969d9015afa0a568665290b9ac6af65
 F src/reporter/reports/report_export.clj 010dbc4c6b27f5c5422944f945cc5515cd5a97ad07252238d13d89398dbcac36
@@ -22,8 +24,8 @@ F src/reporter/utilities/json.clj a54e2376a0536c2d6df002e36f9fdc244cab82c6ca7d85
 F src/reporter/utilities/metadata.clj c40943c9a7db3e9739d42ad412973c7f1607c38ae1f40ea7e7320f23c7e2c54a
 F src/reporter/utilities/time.clj b6b11157c01b015391396c16a02494f373bc3288a7cb9d8000e43b44b57aa2f4
 F test/reporter/core_test.clj 606cc3d9eb3a871d6a469d06434044290309a4c3ccfe0cc388567c25d6831cff
-P 37c6d9c3441ba32b8efb05b2dfd3a210b9c6a35b4e8879e3673745a3e0388d71
-R 67e9bdde8a05790a2e3978a50a0a75b6
+P b556223a35d2f927cdea2b9bed1c0e996f9a6668c67ac8aecc644fc2c17c0e62
+R 74e5079f2204eff71f79e174cd58437b
 U sacha
-Z d7011b2c9cf3db818a96f7262143fd5e
+Z 9164adb9844c53b74076722840ce7ff8
 # Remove this line to create a well-formed Fossil manifest.
