@@ -10,7 +10,8 @@
             [reporter.reports.report-export :refer [export-to-pdf-blob]]
             [reporter.reports.report-export-memoisation :refer [get-memoised-report]]
             [reporter.utilities.benchmarking :refer [time-execution]]
-            [reporter.utilities.json :refer [parse-json]])
+            [reporter.utilities.json :refer [parse-json]]
+            [reporter.utilities.logging :refer [log-error log-warn log-info log-debug log-trace with-log-step]])
 
   (:import [net.sf.jasperreports.engine
             JasperFillManager]))
@@ -36,6 +37,7 @@
 
 (defn generate-report
   [template-path primary-data-table-name db-specification]
+  (log-trace "---->" (str "Generating report with main dataset at table '" primary-data-table-name "'"))
   (-> template-path
       (get-compiled-template db-specification)
       (fill-report db-specification primary-data-table-name)
@@ -43,11 +45,14 @@
 
 (defn generate-and-store-report
   [template-path job-id temporary-data-tables db-specification]
+  (log-trace "--->" (str "Generating report with template at path " template-path " and temporary data tables " temporary-data-tables))
   (let [primary-data-table-name
         (-> temporary-data-tables
             (parse-json)
             (:main_dataset_table))]
+    (log-trace "--->" (str "Main dataset table name '" primary-data-table-name "'"))
     (let [[result execution-time]
           (time-execution
            (fn [] (generate-report template-path primary-data-table-name db-specification)))]
+      (log-trace "--->" (str "Report executed in " execution-time "ms"))
       (complete-job-and-store-report result execution-time job-id db-specification))))

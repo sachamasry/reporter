@@ -24,7 +24,9 @@
                  [org.bouncycastle/bcprov-jdk18on "1.80"]
                  [net.clojars.aneilm/lein-project-reader "0.0.1"]
                  [org.clojure/tools.logging "1.2.4"]
-                 [org.slf4j/slf4j-simple "2.0.7"]]
+                 [org.slf4j/slf4j-simple "2.0.17"]
+                 ]
+                 ;; [org.slf4j/slf4j-nop "2.0.17"]]
 
   :resource-paths ["resources" "resources/fonts/DRReportFontSet.jar"]
   ;; :main ^:skip-aot reporter.core

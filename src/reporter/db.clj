@@ -3,7 +3,8 @@
             [cheshire.core :as json]
             [reporter.utilities.json :refer [parse-json]]
             [reporter.utilities.time :refer [current-datetime]]
-            [reporter.utilities.metadata :refer [generate-attempted-by]]))
+            [reporter.utilities.metadata :refer [generate-attempted-by]]
+            [reporter.utilities.logging :refer [log-info log-warn log-error log-debug with-log-step]]))
 
 (defn get-db-specification [db-path]
   {:classname   "org.sqlite.JDBC"
@@ -50,27 +51,27 @@
   [db-specification]
   (try
     (jdbc/db-do-commands db-specification false ["VACUUM"])
-    (println "✅ VACUUM completed: Database has been defragmented and optimized.")
+    (log-info "" "VACUUM completed: Database has been defragmented and optimized.")
     (catch Exception e
-      (println (str "⚠️ VACUUM failed: " (.getMessage e))))))
+      (log-warn "" (str "VACUUM failed: " (.getMessage e))))))
 
 (defn analyse-database
   "Runs the ANALYSE command to update query planner statistics."
   [db-specification]
   (try
     (jdbc/execute! db-specification ["ANALYZE"])
-    (println "✅ ANALYSE completed: Query planner statistics updated.")
+    (log-info "" "ANALYSE completed: Query planner statistics updated.")
     (catch Exception e
-      (println (str "⚠️ ANALYSE failed: " (.getMessage e))))))
+      (log-warn "" (str "ANALYSE failed: " (.getMessage e))))))
 
 (defn reindex-database
   "Runs REINDEX on the SQLite database to rebuild indexes and improve lookup efficiency."
   [db-specification]
   (try
     (jdbc/execute! db-specification ["REINDEX"])
-    (println "✅ REINDEX completed: All indexes rebuilt for efficiency.")
+    (log-info "" "REINDEX completed: All indexes rebuilt for efficiency.")
     (catch Exception e
-      (println (str "⚠️ REINDEX failed: " (.getMessage e))))))
+      (log-warn "" (str "REINDEX failed: " (.getMessage e))))))
 
 (defn run-database-maintenance
   "Performs SQLite database maintenance operations: VACUUM, ANALYZE, and REINDEX."
@@ -78,7 +79,7 @@
   (vacuum-database db-specification)
   (analyse-database db-specification)
   (reindex-database db-specification)
-  (println "✅ Database maintenance completed."))
+  (log-info "" "Database maintenance completed."))
 
 (defn drop-temporary-tables
   "Drops all temporary tables associated with a report job and clears the `temporary_tables_created` field."
@@ -91,16 +92,16 @@
       (doseq [[dataset-name table-name] temporary-tables]
         (try
           (jdbc/execute! db-specification [(str "DROP TABLE IF EXISTS " table-name)])
-          (println (str "==> Dropped temporary table for dataset '" dataset-name "': " table-name))
+          (log-info "--->" (str "Dropped temporary table for dataset '" dataset-name "': " table-name))
           (catch Exception e
-            (println (str "⚠️ Warning: Failed to drop table " table-name ": " (.getMessage e)))))))
+            (log-warn "" (str "Warning: Failed to drop table " table-name ": " (.getMessage e)))))))
 
     ;; ✅ If all tables were successfully dropped, update the field to an empty JSON object
     (jdbc/update! db-specification
                   :report_jobs
                   {:temporary_tables_created (json/generate-string {})}
                   ["id = ?" job-id])
-    (println (str "✅ Cleared `temporary_tables_created` field for job #" job-id))
+    (log-info "" (str "Cleared `temporary_tables_created` field for job #" job-id))
 
     ;; ✅ Run database maintenance
     (run-database-maintenance db-specification)))
@@ -114,7 +115,7 @@
                    ;; :available_metadata ""
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (println (str "==> Updated job #'" job-id "' state to 'available'"))))
+    (log-info "--->" (str "Updated job #'" job-id "' state to 'available'"))))
 
 (defn change-state-to-discarded
   [^String job-id ^String reason db-specification]
@@ -140,7 +141,7 @@
                    ;; :discarding_metadata ""
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (println (str "==> Updated job #'" job-id "' state to 'discarded'"))))
+    (log-info "--->" (str "Updated job #'" job-id "' state to 'discarded'"))))
 
 (defn discard-job
   [^String job-id ^String reason db-specification]
@@ -175,7 +176,7 @@
     (if (> attempt max-attempts)
       (do
         (change-state-to-discarded job-id "Max attempts exceeded" db-specification)
-        (println (str "==> Job #'" job-id "' has exceeded max attempts, marking it as 'discarded'.")))
+        (log-info "--->" (str "Job #'" job-id "' has exceeded max attempts, marking it as 'discarded'.")))
       (do
         (jdbc/update! db-specification
                       :report_jobs
@@ -185,7 +186,7 @@
                        :attempt_metadata attempt-metadata
                        :updated_at timestamp}
                       ["id = ?" job-id])
-        (println (str "==> Updated job #'" job-id "' state to 'executing'."))))))
+        (log-info "--->" (str "Updated job #'" job-id "' state to 'executing'."))))))
 
 (defn change-state-to-retryable
   [^String job-id db-specification]
@@ -198,7 +199,7 @@
                   {:state "retryable"
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (println (str "==> Updated job #'" job-id "' state to 'retryable'"))))
+    (log-info "--->" (str "Updated job #'" job-id "' state to 'retryable'"))))
 
 (defn change-state-to-completed
   [generated-report report-generation-time ^String job-id db-specification]
@@ -212,13 +213,13 @@
                    ;; :completed_metadata ""
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (println (str "==> Job #'" job-id "' marked as completed."))))
+    (log-info "--->" (str "Job #'" job-id "' marked as completed."))))
 
 (defn complete-job-and-store-report
   [generated-report report-generation-time job-id db-specification]
   (change-state-to-completed generated-report report-generation-time job-id db-specification)
   (drop-temporary-tables job-id db-specification)
-  (println (str "==> Report stored in database for job ID: " job-id "; job state updated to 'completed'")))
+  (log-info "--->" (str "Report stored in database for job ID: " job-id "; job state updated to 'completed'")))
 
 (defn change-state-to-cancelled
   [^String job-id ^String reason db-specification]
@@ -237,7 +238,7 @@
                    :cancellation_metadata (json/generate-string metadata)
                    :updated_at timestamp}
                   ["id = ?" job-id])
-    (println (str "==> Job #'" job-id "' has been canceled."))))
+    (log-info "--->" (str "Job #'" job-id "' has been canceled."))))
 ;; Cancellation metadata example
 ;; {"reason" : "User requested",
 ;;  "canceled_at" ​ "2025-04-04T15:12:30",
@@ -263,7 +264,7 @@
         output-type (:output_type job)
         output-path (str output-path "/" output-filename)]
     (if (= output-type "pdf")
-      (println "PDF format selected. Mock stand-in for complete function."))))
+      (log-info "" "PDF format selected. Mock stand-in for complete function."))))
       ;; (generate-pdf-report template-path output-path db-connection primary-data-table-name db-specification))))
 
 ;; Proposed code, to be tested
@@ -277,7 +278,7 @@
 ;;         (jdbc/update! db-connection :report_jobs
 ;;                       {:status "completed" :result_path (:result_path existing-report) :updated_at (java.time.LocalDateTime/now)}
 ;;                       ["id = ?" (:id job)])
-;;         (println "Skipping report generation, using cached version"))
+;;         (log-info "" "Skipping report generation, using cached version"))
 
 ;;       (let [output-path (str "output/report-" fingerprint ".pdf")]
 ;;         (generate-report "resources/template.jrxml" output-path params)
@@ -300,7 +301,7 @@
 
 ;;       (catch Exception e
 ;;         (update-job-status job-id "failed" nil)
-;;         (println "Error processing job:" (.getMessage e))))))
+;;         (log-info "" (str "Error processing job:" (.getMessage e)))))))
 
 ;; (defn process-job [job]
 ;;   (let [job-id (:id job)

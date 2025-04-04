@@ -11,6 +11,7 @@
              :refer [get-compiled-template get-template-path]]
             [reporter.reports.jasper-reports :refer [generate-and-store-report]]
             [clojure.tools.logging :as log]
+            [reporter.utilities.logging :refer [log-error log-warn log-info log-debug log-trace with-log-step]]
             ;; [reporter.reports.report-export-memoisation :refer [get-generated-report]]
             ))
 
@@ -18,29 +19,29 @@
   (try
     (f)
     (catch Exception e
-      (println "Error processing report:" (.getMessage e))
+      (log-error "->" (str "Error processing report: " (.getMessage e)))
       (.printStackTrace e)
       (System/exit 1))))
 
 (defn execute-job
   [db-path job-id]
-  (log/info "🚀 Executing job" job-id " on database " db-path)
+  (log-info "-->" (str "Executing job" job-id " on database " db-path))
   (try
     (let [db-specification (get-db-specification db-path)
           job (get-report-job job-id db-specification)]
-      (log/debug "DB specification:" db-specification)
-      (log/debug "Job repord:" job)
+      (log-trace "-->" (str "DB specification:" db-specification))
+      (log-trace "-->" (str "Job report:" job))
       (if job
-        (let [template-path (get-template-path db-specification job)
-              temporary-data-tables (:temporary_tables_created job)]
-          (println (str "=> Working on job #'" job-id "'..."))
-          (change-state-to-executing job-id db-specification)
-          (generate-and-store-report template-path job-id temporary-data-tables db-specification)
-          (log/info "✅ Job completed:" job-id)))
-        (println "=> Job ID not found:" job-id))
+        (with-log-step "-->" "Generating report"
+          (let [template-path (get-template-path db-specification job)
+                temporary-data-tables (:temporary_tables_created job)]
+            (log-info "-->" (str "Updating state of job #'" job-id "' to executing"))
+            (change-state-to-executing job-id db-specification)
+            (generate-and-store-report template-path job-id temporary-data-tables db-specification)
+            (log-info "-->" (str "Job completed: " job-id))))
+        (log-error "-->" (str "Job ID not found:" job-id))))
     (catch Exception e
-      (log/error e "❌ Report execution failed for job:" job-id))))
-
+      (log-error "-->" (str "Report execution failed for job: " job-id " with error " e)))))
 
 (defn -main
   [& args]
@@ -48,11 +49,10 @@
     (case command
       "execute-job" (if (and db-path job-id)
                       (do
-                        (log/infof "🧩 Received job execution request: db=%s, job-id=%s" db-path job-id)
+                        (log-info "->" (str "Received job execution request: db=" db-path " job id=" job-id))
                         (safe-execute #(execute-job db-path job-id)))
-                      (log/warn "⚠️ Usage: reporter execute-job <db-path> <job-id>"))
-      (log/error "❌ Unknown command:" command))))
-
+                      (log-error "->" "️Usage: reporter execute-job <db-path> <job-id>"))
+      (log-error "->" (str "Unknown command:" command)))))
 
 ;; (defn -main [& args]
 ;;   (safe-execute #(process-report (first args) (second args)))
